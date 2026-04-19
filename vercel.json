@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/publish",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/trends/generate",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/analytics/collect",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/instagram/reimport-all",
+      "schedule": "0 3 * * 1"
+    }
+  ]
+}

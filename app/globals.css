@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+/* ─── Brand Design Tokens ─────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #F9FAFB;
+  --color-surface: #FFFFFF;
+  --color-border: #EAECF0;
+  --color-border-strong: #D1D5DB;
+  --color-primary: #1A56DB;
+  --color-primary-hover: #1648C0;
+  --color-primary-light: #EEF3FE;
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-tertiary: #4B5563;
+  --color-success: #0E9F6E;
+  --color-success-bg: #DEF7EC;
+  --color-warning: #D97706;
+  --color-warning-bg: #FFF8E6;
+  --color-error: #E02424;
+  --color-error-bg: #FDE8E8;
+  --color-sidebar-bg: #FFFFFF;
+  --color-topbar-bg: #FFFFFF;
+  --color-banner-bg: #111827;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Tailwind v4 Theme Extension ─────────────────────────────── */
+@theme {
+  /* Typography — system font stack, no external font */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+
+  /* Brand colors — accessible as bg-brand-*, text-brand-*, border-brand-*, etc. */
+  --color-brand-bg: #F9FAFB;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-border: #EAECF0;
+  --color-brand-border-strong: #D1D5DB;
+  --color-brand-primary: #1A56DB;
+  --color-brand-primary-hover: #1648C0;
+  --color-brand-primary-light: #EEF3FE;
+  --color-brand-text-primary: #111827;
+  --color-brand-text-secondary: #374151;
+  --color-brand-text-tertiary: #4B5563;
+  --color-brand-success: #0E9F6E;
+  --color-brand-success-bg: #DEF7EC;
+  --color-brand-warning: #D97706;
+  --color-brand-warning-bg: #FFF8E6;
+  --color-brand-error: #E02424;
+  --color-brand-error-bg: #FDE8E8;
+  --color-brand-banner: #111827;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ─── Base Styles ──────────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Dashboard hero button ────────────────────────────────────── */
+.dashboard-hero-btn {
+  transition: background 150ms;
+}
+.dashboard-hero-btn:hover {
+  background: #2D2D2D !important;
+}
+
+/* ─── Text clamping utilities ──────────────────────────────────── */
+.clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.45;
+}
+
