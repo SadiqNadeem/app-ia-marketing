@@ -128,7 +128,7 @@ export function NotificationBell({ businessId, compact = false }: NotificationBe
   async function handleNotificationClick(n: Notification) {
     if (!n.read) await markRead(n.id)
     setOpen(false)
-    if (n.link) router.push(n.link)
+    if (n.link) router.push(n.link as never)
   }
 
   const displayCount = unreadCount > 9 ? '9+' : unreadCount > 0 ? String(unreadCount) : null

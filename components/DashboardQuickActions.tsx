@@ -81,7 +81,7 @@ export function DashboardQuickActions() {
         {QUICK_ACTIONS.map(({ label, href, iconBg, iconColor, icon }) => (
           <Link
             key={label}
-            href={href}
+            href={href as never}
             className="group block bg-white border border-[#E8E3DC] rounded-[12px] text-center no-underline"
             style={{
               padding: '20px 14px 16px',

@@ -125,7 +125,7 @@ export function DashboardAIPanel({
           ].map(({ label, href }) => (
             <Link
               key={href}
-              href={href}
+              href={href as never}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: 'rgba(255,255,255,0.1)',

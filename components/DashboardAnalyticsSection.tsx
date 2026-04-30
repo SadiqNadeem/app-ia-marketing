@@ -121,7 +121,8 @@ function fmtK(n: number): string {
 // ─────────────────────────────────────────────────────────────────────────────
 // Custom tooltips — no default recharts grey box
 // ─────────────────────────────────────────────────────────────────────────────
-function LineTooltip({ active, payload, label }: TooltipProps<number, string>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function LineTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
@@ -131,7 +132,7 @@ function LineTooltip({ active, payload, label }: TooltipProps<number, string>) {
       boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
     }}>
       <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '0 0 5px' }}>{label}</p>
-      {payload.map(p => (
+      {(payload as Array<{ name: string; value: number; dataKey: string }>).map(p => (
         <p key={p.dataKey} style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: '2px 0' }}>
           {p.name === 'views' ? 'Vistas' : 'Interacciones'}: {fmtK(p.value as number)}
         </p>
@@ -140,7 +141,8 @@ function LineTooltip({ active, payload, label }: TooltipProps<number, string>) {
   )
 }
 
-function BarTooltip({ active, payload, label }: TooltipProps<number, string>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   const total = sum(CONTENT_TYPES.map(c => c.count))
   const val = payload[0]?.value as number

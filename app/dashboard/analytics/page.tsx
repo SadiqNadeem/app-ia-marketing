@@ -380,7 +380,7 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 11, fill: '#4B5563' }} unit="%" />
                   <Tooltip
                     contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}
-                    formatter={(v: number) => [`${v}%`, 'Engagement']}
+                    formatter={(v: unknown) => [`${v as number}%`, 'Engagement']}
                   />
                   <Bar dataKey="Engagement" radius={[4, 4, 0, 0]}>
                     {barData.map((entry, idx) => (

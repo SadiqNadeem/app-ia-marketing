@@ -111,7 +111,7 @@ async function generateImage(
       quality: 'standard',
       n: 1,
     })
-    const tempUrl = res.data[0]?.url
+    const tempUrl = res.data?.[0]?.url
     if (!tempUrl) return null
 
     const imgRes = await fetch(tempUrl)

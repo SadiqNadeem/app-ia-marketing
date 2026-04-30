@@ -27,7 +27,8 @@ interface Props {
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div style={{
@@ -39,7 +40,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: '0 0 5px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </p>
-      {payload.map(p => (
+      {(payload as Array<{ name: string; value: number }>).map(p => (
         <p key={p.name} style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: '2px 0' }}>
           {p.name === 'published' ? 'Publicados' : 'Programados'}: {p.value}
         </p>

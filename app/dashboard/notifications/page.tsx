@@ -91,7 +91,7 @@ export default function NotificationsPage() {
 
   async function handleClick(n: Notification) {
     if (!businessId || n.read) {
-      if (n.link) router.push(n.link)
+      if (n.link) router.push(n.link as never)
       return
     }
     setNotifications((prev) =>
@@ -103,7 +103,7 @@ export default function NotificationsPage() {
       headers: { 'Content-Type': 'application/json; charset=UTF-8' },
       body: JSON.stringify({ business_id: businessId, notification_id: n.id }),
     }).catch(() => {})
-    if (n.link) router.push(n.link)
+    if (n.link) router.push(n.link as never)
   }
 
   const filtered = notifications.filter((n) => {

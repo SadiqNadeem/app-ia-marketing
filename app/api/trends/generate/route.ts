@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { openai } from '@/lib/openai'
-import { v4 as uuidv4 } from 'uuid'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { v4: uuidv4 } = require('uuid') as { v4: () => string }
 import { notifyTrendAvailable } from '@/lib/notifications'
 
 const BUSINESS_TYPE_NAMES: Record<string, string> = {

@@ -40,10 +40,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const since = periodToDate(period)
 
   // ── 1. Platform totals ─────────────────────────────────────────
-  const { data: platformTotals } = await admin.rpc('analytics_platform_totals', {
-    p_business_id: businessId,
-    p_since: since,
-  }).catch(() => ({ data: null }))
+  const { data: platformTotals } = await Promise.resolve(
+    admin.rpc('analytics_platform_totals', {
+      p_business_id: businessId,
+      p_since: since,
+    })
+  ).catch(() => ({ data: null }))
 
   // Fallback: raw query if RPC not available
   let byPlatform: {

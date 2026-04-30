@@ -21,11 +21,11 @@ async function createBypassClient() {
             if (authProp === 'getUser') {
               return () => Promise.resolve({ data: { user: devUser }, error: null })
             }
-            return (authTarget as Record<string | symbol, unknown>)[authProp]
+            return (authTarget as unknown as Record<string | symbol, unknown>)[authProp]
           },
         })
       }
-      return (target as Record<string | symbol, unknown>)[prop]
+      return (target as unknown as Record<string | symbol, unknown>)[prop]
     },
   }) as ReturnType<typeof createAdminClient>
 }

@@ -100,7 +100,7 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
       {landingLink && (
         <div style={{ textAlign: 'center' }}>
           <Link
-            href={landingLink as `/${string}`}
+            href={landingLink as never}
             style={{
               display: 'inline-block',
               background: '#F3F4F6',

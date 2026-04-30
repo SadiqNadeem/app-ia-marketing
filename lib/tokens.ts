@@ -207,7 +207,7 @@ export async function getValidToken(
             notifyTokenExpiring(businessId, platform, email).catch(() => {})
           }
         })
-        .catch(() => {})
+        .then(undefined, () => {})
     }
   }
 

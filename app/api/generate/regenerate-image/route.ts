@@ -58,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       quality: 'standard',
       n: 1,
     })
-    tempUrl = response.data[0]?.url ?? ''
+    tempUrl = response.data?.[0]?.url ?? ''
     if (!tempUrl) throw new Error('No image URL returned')
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

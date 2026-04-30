@@ -218,7 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       quality: 'standard',
       n: 1,
     })
-    tempImageUrl = response.data[0]?.url ?? ''
+    tempImageUrl = response.data?.[0]?.url ?? ''
     if (!tempImageUrl) throw new Error('DALL-E did not return an image URL')
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err)

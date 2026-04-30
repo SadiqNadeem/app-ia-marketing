@@ -174,7 +174,7 @@ export default function ExamplesPage() {
                   style={{ position: 'relative', aspectRatio: '4/3', background: '#F3F4F6', cursor: 'pointer' }}
                   onMouseEnter={() => setHoveredId(ex.id)}
                   onMouseLeave={() => setHoveredId(null)}
-                  onClick={() => router.push(getExampleRoute(ex))}
+                  onClick={() => router.push(getExampleRoute(ex) as never)}
                 >
                   {imgSrc ? (
                     <Image src={imgSrc} alt={ex.title} fill style={{ objectFit: 'cover' }} unoptimized />
@@ -237,7 +237,7 @@ export default function ExamplesPage() {
 
                   {/* Action button */}
                   <button
-                    onClick={() => router.push(getExampleRoute(ex))}
+                    onClick={() => router.push(getExampleRoute(ex) as never)}
                     style={{
                       marginTop: 4, width: '100%', padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
                       border: ex.is_template ? 'none' : '1px solid #E5E7EB',
