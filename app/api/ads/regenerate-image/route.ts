@@ -81,7 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       n: 1,
     })
 
-    const tempUrl = (imageRes.data ?? [])[0]?.url
+    const tempUrl = imageRes.data?.[0]?.url
     if (!tempUrl) throw new Error('No image URL returned')
 
     const imgBuffer = await fetch(tempUrl).then(r => r.arrayBuffer())
