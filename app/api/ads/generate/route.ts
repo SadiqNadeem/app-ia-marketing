@@ -260,7 +260,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       n: 1,
     })
 
-    const tempUrl = imageRes.data[0]?.url
+    const tempUrl = imageRes.data?.[0]?.url
     if (tempUrl) {
       const imgBuffer = await fetch(tempUrl).then(r => r.arrayBuffer())
       const storagePath = `${business_id}/ads/${Date.now()}.png`
