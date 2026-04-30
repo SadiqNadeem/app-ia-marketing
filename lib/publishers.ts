@@ -3,13 +3,51 @@ import type { Post, SocialPlatform } from '@/types'
 
 const GRAPH = 'https://graph.facebook.com/v19.0'
 
+interface GraphErrorBody {
+  error?: {
+    message?: string
+    code?: number
+    error_subcode?: number
+    type?: string
+  }
+  id?: string
+  post_id?: string
+  data?: {
+    publish_id?: string
+  }
+}
+
 export interface PublishResult {
   success: boolean
   error?: string
   platform_post_id?: string
 }
 
-// ── Helper: get platform_user_id for a connection ─────────────────
+function getPostText(post: Post): string {
+  return (post.content_text ?? post.content ?? '').trim()
+}
+
+function getPostMediaUrl(post: Post): string | null {
+  return post.media_url ?? post.image_url ?? null
+}
+
+function parseMetaError(stage: string, status: number, body: GraphErrorBody): string {
+  const message = body.error?.message?.trim()
+  const code = body.error?.code
+
+  if (code === 190) {
+    return `${stage}: token expirado o invalido. Reconecta la cuenta.`
+  }
+  if (code === 10 || code === 200) {
+    return `${stage}: faltan permisos para publicar.`
+  }
+  if (message?.toLowerCase().includes('permission')) {
+    return `${stage}: permisos insuficientes para publicar.`
+  }
+
+  return `${stage}: ${message ?? `Error de API (${status})`}`
+}
+
 async function getPlatformUserId(
   businessId: string,
   platform: SocialPlatform
@@ -25,121 +63,168 @@ async function getPlatformUserId(
   return data?.platform_user_id ?? null
 }
 
-// ── Instagram ─────────────────────────────────────────────────────
-export async function publishToInstagram(
-  post: Post,
-  token: string
-): Promise<PublishResult> {
+async function resolveFacebookPageToken(userToken: string, pageId: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${GRAPH}/me/accounts?fields=id,access_token&access_token=${encodeURIComponent(userToken)}`
+    )
+    const body = (await res.json()) as GraphErrorBody & {
+      data?: Array<{ id?: string; access_token?: string }>
+    }
+
+    if (!res.ok || !Array.isArray(body.data)) {
+      return null
+    }
+
+    const page = body.data.find((entry) => entry.id === pageId)
+    return page?.access_token ?? null
+  } catch {
+    return null
+  }
+}
+
+async function waitForContainerReady(
+  containerId: string,
+  token: string,
+  maxAttempts = 12,
+  delayMs = 3000
+): Promise<'FINISHED' | 'ERROR' | 'TIMEOUT'> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, delayMs))
+    try {
+      const res = await fetch(
+        `${GRAPH}/${containerId}?fields=status_code&access_token=${encodeURIComponent(token)}`
+      )
+      const body = (await res.json()) as { status_code?: string }
+      if (body.status_code === 'FINISHED') return 'FINISHED'
+      if (body.status_code === 'ERROR') return 'ERROR'
+      // IN_PROGRESS / EXPIRED / etc — keep waiting
+    } catch {
+      // network hiccup, keep trying
+    }
+  }
+  return 'TIMEOUT'
+}
+
+export async function publishToInstagram(post: Post, token: string): Promise<PublishResult> {
   try {
     const igUserId = await getPlatformUserId(post.business_id, 'instagram')
-    if (!igUserId) return { success: false, error: 'ID de cuenta Instagram no encontrado' }
+    if (!igUserId) {
+      return { success: false, error: 'Instagram business account no conectado.' }
+    }
+
+    const mediaUrl = getPostMediaUrl(post)
+    if (!mediaUrl) {
+      return { success: false, error: 'Instagram requiere una imagen para publicar.' }
+    }
 
     // Step 1 — create media container
     const containerParams = new URLSearchParams({
       access_token: token,
-      caption: post.content_text ?? '',
+      caption: getPostText(post),
+      image_url: mediaUrl,
     })
 
-    if (post.image_url) {
-      containerParams.set('image_url', post.image_url)
-    } else {
-      // Instagram requires media; use a plain text carousel or return error
-      return { success: false, error: 'Instagram requiere una imagen para publicar' }
-    }
+    const containerRes = await fetch(`${GRAPH}/${igUserId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: containerParams.toString(),
+    })
+    const containerBody = (await containerRes.json()) as GraphErrorBody
 
-    const containerRes = await fetch(
-      `${GRAPH}/${igUserId}/media`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: containerParams.toString(),
+    if (!containerRes.ok || !containerBody.id) {
+      return {
+        success: false,
+        error: parseMetaError('Fallo al crear media container', containerRes.status, containerBody),
       }
-    )
-    const containerData = await containerRes.json()
-
-    if (!containerRes.ok || !containerData.id) {
-      const msg = containerData?.error?.message ?? `Error al crear contenedor (${containerRes.status})`
-      return { success: false, error: msg }
     }
 
-    const creationId: string = containerData.id
+    // Step 2 — wait until Instagram finishes processing the image
+    const containerStatus = await waitForContainerReady(containerBody.id, token)
+    if (containerStatus === 'ERROR') {
+      return { success: false, error: 'Instagram no pudo procesar la imagen. Verifica que la URL sea publica.' }
+    }
+    if (containerStatus === 'TIMEOUT') {
+      return { success: false, error: 'Instagram tardo demasiado en procesar la imagen. Intentalo de nuevo.' }
+    }
 
-    // Step 2 — publish the container
+    // Step 3 — publish the ready container
     const publishParams = new URLSearchParams({
-      creation_id: creationId,
       access_token: token,
+      creation_id: containerBody.id,
     })
 
-    const publishRes = await fetch(
-      `${GRAPH}/${igUserId}/media_publish`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: publishParams.toString(),
-      }
-    )
-    const publishData = await publishRes.json()
+    const publishRes = await fetch(`${GRAPH}/${igUserId}/media_publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: publishParams.toString(),
+    })
+    const publishBody = (await publishRes.json()) as GraphErrorBody
 
-    if (!publishRes.ok || !publishData.id) {
-      const msg = publishData?.error?.message ?? `Error al publicar en Instagram (${publishRes.status})`
-      return { success: false, error: msg }
+    if (!publishRes.ok || !publishBody.id) {
+      return {
+        success: false,
+        error: parseMetaError('Fallo en media_publish', publishRes.status, publishBody),
+      }
     }
 
-    return { success: true, platform_post_id: publishData.id as string }
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado en Instagram' }
+    return { success: true, platform_post_id: publishBody.id }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error inesperado al publicar en Instagram.',
+    }
   }
 }
 
-// ── Facebook ──────────────────────────────────────────────────────
-export async function publishToFacebook(
-  post: Post,
-  token: string
-): Promise<PublishResult> {
+export async function publishToFacebook(post: Post, token: string): Promise<PublishResult> {
   try {
     const pageId = await getPlatformUserId(post.business_id, 'facebook')
-    if (!pageId) return { success: false, error: 'ID de pagina Facebook no encontrado' }
-
-    let endpoint: string
-    const body = new URLSearchParams({ access_token: token })
-
-    if (post.image_url) {
-      // Publish photo with caption
-      endpoint = `${GRAPH}/${pageId}/photos`
-      body.set('url', post.image_url)
-      body.set('caption', post.content_text ?? '')
-    } else {
-      // Publish text post
-      endpoint = `${GRAPH}/${pageId}/feed`
-      body.set('message', post.content_text ?? '')
+    if (!pageId) {
+      return { success: false, error: 'Facebook Page no conectada.' }
     }
 
-    const res = await fetch(endpoint, {
+    const pageToken = (await resolveFacebookPageToken(token, pageId)) ?? token
+    const mediaUrl = getPostMediaUrl(post)
+    const text = getPostText(post)
+
+    let endpoint = `${GRAPH}/${pageId}/feed`
+    const body = new URLSearchParams({ access_token: pageToken, message: text })
+
+    if (mediaUrl) {
+      endpoint = `${GRAPH}/${pageId}/photos`
+      body.set('url', mediaUrl)
+      body.set('caption', text)
+      body.delete('message')
+    }
+
+    const publishRes = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
     })
-    const data = await res.json()
+    const publishBody = (await publishRes.json()) as GraphErrorBody
 
-    if (!res.ok) {
-      const msg = data?.error?.message ?? `Error al publicar en Facebook (${res.status})`
-      return { success: false, error: msg }
+    if (!publishRes.ok) {
+      return {
+        success: false,
+        error: parseMetaError('Fallo al publicar en Facebook', publishRes.status, publishBody),
+      }
     }
 
-    const postId = (data as { id?: string; post_id?: string }).id ?? (data as { post_id?: string }).post_id
-    return { success: true, platform_post_id: postId }
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado en Facebook' }
+    const platformPostId = publishBody.id ?? publishBody.post_id
+    return { success: true, platform_post_id: platformPostId }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error inesperado al publicar en Facebook.',
+    }
   }
 }
 
-// ── TikTok ────────────────────────────────────────────────────────
-export async function publishToTikTok(
-  post: Post,
-  token: string
-): Promise<PublishResult> {
+export async function publishToTikTok(post: Post, token: string): Promise<PublishResult> {
   if (!post.video_url) {
-    return { success: false, error: 'TikTok requiere un video' }
+    return { success: false, error: 'TikTok requiere un video.' }
   }
 
   try {
@@ -151,7 +236,7 @@ export async function publishToTikTok(
       },
       body: JSON.stringify({
         post_info: {
-          title: post.content_text ?? '',
+          title: getPostText(post),
           privacy_level: 'PUBLIC_TO_EVERYONE',
           disable_duet: false,
           disable_comment: false,
@@ -164,72 +249,73 @@ export async function publishToTikTok(
       }),
     })
 
-    const data = await res.json()
-
+    const data = (await res.json()) as GraphErrorBody
     if (!res.ok || !data.data?.publish_id) {
-      const msg = data?.error?.message ?? `Error al publicar en TikTok (${res.status})`
-      return { success: false, error: msg }
+      return { success: false, error: `TikTok publish init fallo (${res.status}).` }
     }
 
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado en TikTok' }
+    return { success: true, platform_post_id: data.data.publish_id }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error inesperado al publicar en TikTok.',
+    }
   }
 }
 
-// ── Google Business ───────────────────────────────────────────────
-export async function publishToGoogle(
-  post: Post,
-  token: string
-): Promise<PublishResult> {
+export async function publishToGoogle(post: Post, token: string): Promise<PublishResult> {
   try {
     const locationName = await getPlatformUserId(post.business_id, 'google')
-    if (!locationName) return { success: false, error: 'Ubicacion de Google Business no encontrada' }
+    if (!locationName) return { success: false, error: 'Google Business no conectado.' }
 
+    const mediaUrl = getPostMediaUrl(post)
     const body: Record<string, unknown> = {
       languageCode: 'es',
-      summary: post.content_text ?? '',
+      summary: getPostText(post),
       callToAction: { actionType: 'LEARN_MORE' },
-      media: post.image_url
-        ? [{ mediaFormat: 'PHOTO', sourceUrl: post.image_url }]
-        : [],
+      media: mediaUrl ? [{ mediaFormat: 'PHOTO', sourceUrl: mediaUrl }] : [],
     }
 
-    const res = await fetch(
-      `https://mybusiness.googleapis.com/v4/${locationName}/localPosts`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      }
-    )
-    const data = await res.json()
+    const res = await fetch(`https://mybusiness.googleapis.com/v4/${locationName}/localPosts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+    const data = (await res.json()) as GraphErrorBody & { name?: string }
 
     if (!res.ok) {
-      const msg = data?.error?.message ?? `Error al publicar en Google Business (${res.status})`
+      const msg = data?.error?.message ?? `Google Business fallo (${res.status}).`
       return { success: false, error: msg }
     }
 
-    return { success: true }
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado en Google Business' }
+    return { success: true, platform_post_id: data.name }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error inesperado al publicar en Google Business.',
+    }
   }
 }
 
-// ── Dispatcher: pick the right publisher ─────────────────────────
 export async function publishToPlatform(
   platform: SocialPlatform,
   post: Post,
   token: string
 ): Promise<PublishResult> {
   switch (platform) {
-    case 'instagram': return publishToInstagram(post, token)
-    case 'facebook':  return publishToFacebook(post, token)
-    case 'tiktok':    return publishToTikTok(post, token)
-    case 'google':    return publishToGoogle(post, token)
-    default:          return { success: false, error: `Plataforma no soportada: ${platform}` }
+    case 'instagram':
+      return publishToInstagram(post, token)
+    case 'facebook':
+      return publishToFacebook(post, token)
+    case 'tiktok':
+      return publishToTikTok(post, token)
+    case 'google':
+      return publishToGoogle(post, token)
+    default:
+      return { success: false, error: `Plataforma no soportada: ${platform}` }
   }
 }
+

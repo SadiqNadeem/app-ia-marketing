@@ -9,6 +9,22 @@ interface RequestBody {
   promotion_type: string
   custom_text?: string
   style: ImageStyle
+  example_id?: string
+}
+
+const PROMOTION_TO_CATEGORY: Record<string, string> = {
+  menu_dia: 'menu',
+  oferta_2x1: 'promocion',
+  happy_hour: 'promocion',
+  sorteo: 'anuncio',
+  evento: 'anuncio',
+  nuevo_producto: 'flyer',
+  navidad: 'flyer',
+  san_valentin: 'flyer',
+  halloween: 'flyer',
+  apertura: 'flyer',
+  aniversario: 'flyer',
+  black_friday: 'promocion',
 }
 
 interface GenerateImageResponse {
@@ -83,7 +99,8 @@ function buildDallePrompt(
   primaryColor: string,
   style: ImageStyle,
   promotionType: string,
-  knowledgeText: string
+  knowledgeText: string,
+  exampleStyleDescription?: string
 ): string {
   const styleDesc = STYLE_DESCRIPTIONS[style]
   const promotionCtx =
@@ -96,10 +113,14 @@ function buildDallePrompt(
       ? ` Products and setting inspired by: ${knowledgeText.trim().slice(0, 200)}.`
       : ''
 
+  const exampleHint = exampleStyleDescription
+    ? ` Design reference style: ${exampleStyleDescription.slice(0, 300)}.`
+    : ''
+
   return (
     `Professional marketing photo for a ${category} business called ${name}. ` +
     `Style: ${styleDesc}. ` +
-    `Context: ${promotionCtx}.${contextHint} ` +
+    `Context: ${promotionCtx}.${contextHint}${exampleHint} ` +
     `High quality, commercial photography style, clean background, ` +
     `vibrant colors inspired by ${primaryColor}. ` +
     `No text, no logos, no people, no watermarks.`
@@ -126,7 +147,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Cuerpo de la solicitud invalido' }, { status: 400 })
   }
 
-  const { business_id, promotion_type, style } = body
+  const { business_id, promotion_type, style, example_id } = body
 
   if (!business_id || !promotion_type || !style) {
     return NextResponse.json(
@@ -150,12 +171,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 
-  // ── 4. Fetch knowledge and build DALL-E prompt ─────────────────
-  const { data: knowledge } = await supabase
-    .from('business_knowledge')
-    .select('title, extracted_text, type')
-    .eq('business_id', business_id)
-    .order('created_at', { ascending: false })
+  // ── 4. Fetch knowledge + optional example style ────────────────
+  const exampleCategory = PROMOTION_TO_CATEGORY[promotion_type] ?? 'flyer'
+
+  const [{ data: knowledge }, exampleData] = await Promise.all([
+    supabase
+      .from('business_knowledge')
+      .select('title, extracted_text, type')
+      .eq('business_id', business_id)
+      .order('created_at', { ascending: false }),
+    example_id
+      ? supabase.from('ai_examples').select('style_description').eq('id', example_id).eq('is_active', true).single()
+      : supabase
+          .from('ai_examples')
+          .select('style_description')
+          .eq('is_active', true)
+          .eq('category', exampleCategory)
+          .or(`business_types.cs.{"${business.category}"},business_types.eq.{}`)
+          .order('sort_order', { ascending: true })
+          .limit(1)
+          .single(),
+  ])
+
+  const exampleStyleDescription: string | undefined =
+    (exampleData.data as { style_description?: string } | null)?.style_description ?? undefined
 
   const knowledgeText = buildKnowledgeBlock(knowledge ?? [])
 
@@ -165,7 +204,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     business.primary_color,
     style,
     promotion_type,
-    knowledgeText
+    knowledgeText,
+    exampleStyleDescription
   )
 
   // ── 5. Call DALL-E 3 ───────────────────────────────────────────

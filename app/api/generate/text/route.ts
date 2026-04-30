@@ -207,7 +207,8 @@ function buildSystemPrompt(
   platform: SocialPlatform,
   knowledgeBlock: string,
   instagramAnalysis?: string,
-  qualityExamples?: string[]
+  qualityExamples?: string[],
+  globalExamples?: Array<{ title: string; category: string; style_description: string }>
 ): string {
   const igSection = instagramAnalysis?.trim()
     ? `\n\nAnalisis del estilo de comunicacion de este negocio en redes sociales:\n${instagramAnalysis}\n\nIMPORTANTE: Cuando generes contenido, replica este estilo de comunicacion. Manten el tono, la longitud y el tipo de llamadas a la accion que ya funcionan para este negocio.`
@@ -221,6 +222,10 @@ function buildSystemPrompt(
     ? `\n\nEjemplos de alta calidad:\n${qualityExamples.map((e, i) => `[${i + 1}] ${e}`).join('\n\n')}\n\nEstudia el estilo, tono y estructura de estos ejemplos. Aplicalos al negocio actual.`
     : ''
 
+  const globalExamplesSection = globalExamples && globalExamples.length > 0
+    ? `\n\nEjemplos de referencia de diseno y estilo para este tipo de negocio:\n${globalExamples.map(e => `- ${e.title} (${e.category}): ${e.style_description}`).join('\n')}\n\nCuando generes contenido, ten en cuenta estos estilos de referencia para que el resultado sea visualmente coherente y profesional.`
+    : ''
+
   return `Eres un experto en marketing digital para negocios locales. Escribes contenido concreto, directo y profesional. Nunca generas contenido generico.
 
 Negocio: ${name}
@@ -232,7 +237,7 @@ Reglas estrictas:
 - Estilo directo: frases cortas, sin relleno
 - Cero emojis
 - Cero frases genericas como "descubre", "el lugar perfecto", "no te pierdas"
-- Responde solo con el contenido final, sin explicaciones ni metadatos${igSection}${contextSection}${examplesSection}`
+- Responde solo con el contenido final, sin explicaciones ni metadatos${igSection}${contextSection}${examplesSection}${globalExamplesSection}`
 }
 
 // Maps ContentType to AiExampleType for DB lookup
@@ -257,6 +262,21 @@ async function fetchAiExamples(
     .limit(5)
 
   return (data ?? []).map((r: { content: string }) => r.content)
+}
+
+async function fetchGlobalExamples(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  businessType: string
+): Promise<Array<{ title: string; category: string; style_description: string }>> {
+  const { data } = await supabase
+    .from('ai_examples')
+    .select('title, category, style_description')
+    .eq('is_active', true)
+    .or(`business_types.cs.{"${businessType}"},business_types.eq.{}`)
+    .order('sort_order', { ascending: true })
+    .limit(5)
+
+  return data ?? []
 }
 
 function buildKnowledgeBlock(
@@ -385,18 +405,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ── 4. Fetch knowledge + AI examples in parallel ───────────────
-  const [{ data: knowledge }, aiExamples] = await Promise.all([
+  const [{ data: knowledge }, aiExamples, globalExamples] = await Promise.all([
     supabase
       .from('business_knowledge')
       .select('title, extracted_text, type')
       .eq('business_id', business_id)
       .order('created_at', { ascending: false }),
     fetchAiExamples(supabase, type),
+    fetchGlobalExamples(supabase, business.category),
   ])
 
   // ── 5. Build prompts ───────────────────────────────────────────
   const { block: knowledgeBlock, instagramAnalysis } = buildKnowledgeBlock(knowledge ?? [])
-  const systemPrompt = buildSystemPrompt(business.name, business.category, platform, knowledgeBlock, instagramAnalysis, aiExamples)
+  const systemPrompt = buildSystemPrompt(business.name, business.category, platform, knowledgeBlock, instagramAnalysis, aiExamples, globalExamples)
   const userPrompt = buildUserPrompt(type, business.name, platform, promotion_type, custom_instructions)
 
   // ── 6. Call OpenAI ─────────────────────────────────────────────

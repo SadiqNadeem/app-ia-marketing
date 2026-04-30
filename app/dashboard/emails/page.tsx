@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { buildEmailHtml, buildPlainText } from '@/lib/email-template'
 import { fixEncoding } from '@/lib/fix-encoding'
+import { EmailPreview } from '@/components/EmailPreview'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ export default function EmailsPage() {
   const [savingDraft, setSavingDraft] = useState(false)
   const [savedCampaignId, setSavedCampaignId] = useState<string | null>(null)
   const [saveMsg, setSaveMsg] = useState('')
+  const [showMobilePreview, setShowMobilePreview] = useState(false)
 
   // ── Recipients ─────────────────────────────────────────────────────────────
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -447,9 +449,9 @@ export default function EmailsPage() {
 
       {/* ── TAB: Nueva campana ── */}
       {activeTab === 'new' && (
-        <div className="flex gap-6">
+        <div className="flex flex-col gap-6 md:flex-row">
           {/* Left column — Editor */}
-          <div className="flex flex-col gap-4" style={{ flex: '0 0 55%' }}>
+          <div className="flex flex-col gap-4 md:basis-[55%] md:shrink-0">
 
             {/* Card 1 — Generar con IA */}
             <Card>
@@ -485,6 +487,17 @@ export default function EmailsPage() {
                 )}
 
                 <div>
+                  <label className="block text-sm font-medium text-[#374151] mb-1">Asunto del email (opcional)</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={e => setSubject(e.target.value)}
+                    placeholder="Ej: Oferta especial este fin de semana"
+                    className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-[#374151] mb-1">Instrucciones adicionales (opcional)</label>
                   <textarea
                     value={customInstructions}
@@ -506,9 +519,8 @@ export default function EmailsPage() {
             </Card>
 
             {/* Card 2 — Editar contenido */}
-            {(generated || subject) && (
-              <Card>
-                <h2 className="text-base font-semibold text-[#111827] mb-4">Editar contenido</h2>
+            <Card>
+                <h2 className="text-base font-semibold text-[#111827] mb-4">Contenido del email</h2>
 
                 <div className="flex flex-col gap-3">
                   <div>
@@ -523,8 +535,8 @@ export default function EmailsPage() {
 
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm font-medium text-[#374151]">Asunto del email</label>
-                      <span className={`text-xs ${subject.length > 60 ? 'text-red-500' : 'text-[#4B5563]'}`}>
+                      <label className="block text-sm font-medium text-[#374151]">Asunto</label>
+                      <span className={`text-xs ${subject.length > 60 ? 'text-red-500' : 'text-[#9CA3AF]'}`}>
                         {subject.length}/60
                       </span>
                     </div>
@@ -533,6 +545,7 @@ export default function EmailsPage() {
                       value={subject}
                       onChange={e => setSubject(e.target.value)}
                       maxLength={80}
+                      placeholder="El asunto que veran en su bandeja de entrada"
                       className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     />
                   </div>
@@ -559,6 +572,7 @@ export default function EmailsPage() {
                       type="text"
                       value={headline}
                       onChange={e => setHeadline(e.target.value)}
+                      placeholder="El titulo grande dentro del email"
                       className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     />
                   </div>
@@ -571,28 +585,29 @@ export default function EmailsPage() {
                       value={body}
                       onChange={e => setBody(e.target.value)}
                       rows={6}
+                      placeholder="El contenido principal. Puedes usar HTML basico: <strong>, <br>, <ul>, <li>"
                       className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] font-mono resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-[#374151] mb-1">Texto del boton CTA</label>
+                      <label className="block text-sm font-medium text-[#374151] mb-1">Texto del boton (opcional)</label>
                       <input
                         type="text"
                         value={ctaText}
                         onChange={e => setCtaText(e.target.value)}
-                        placeholder="Opcional"
+                        placeholder="Ej: Ver la oferta, Reservar ahora, Ver menu"
                         className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#374151] mb-1">URL del boton CTA</label>
+                      <label className="block text-sm font-medium text-[#374151] mb-1">URL del boton (opcional)</label>
                       <input
                         type="url"
                         value={ctaUrl}
                         onChange={e => setCtaUrl(e.target.value)}
-                        placeholder="Opcional"
+                        placeholder="https://..."
                         className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                       />
                     </div>
@@ -604,7 +619,7 @@ export default function EmailsPage() {
                       value={footerText}
                       onChange={e => setFooterText(e.target.value)}
                       rows={2}
-                      placeholder="Horarios, direccion... (opcional)"
+                      placeholder="Ej: Abierto de lunes a domingo de 12:00 a 23:00. C/ Gran Via 45"
                       className="w-full border border-[#D1D5DB] rounded-lg px-3 py-2 text-sm text-[#111827] resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     />
                   </div>
@@ -635,51 +650,34 @@ export default function EmailsPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
-            )}
+            </Card>
           </div>
 
           {/* Right column — Preview */}
-          <div style={{ flex: '0 0 45%' }}>
-            <div className="sticky top-6">
-              <p className="text-xs font-medium text-[#374151] uppercase tracking-wide mb-2">Vista previa</p>
-              <div
-                style={{
-                  width: '100%',
-                  aspectRatio: '600 / 700',
-                  overflow: 'hidden',
-                  borderRadius: 8,
-                  border: '1px solid #E5E7EB',
-                  background: '#F7F8FA',
-                  position: 'relative',
-                }}
-              >
-                {previewHtml ? (
-                  <div style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}>
-                    <iframe
-                      srcDoc={previewHtml}
-                      style={{
-                        width: 600,
-                        height: 800,
-                        border: 'none',
-                        transformOrigin: 'top left',
-                        transform: 'scale(0.78)',
-                      }}
-                      sandbox="allow-same-origin"
-                      title="Vista previa del email"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-[#4B5563] text-center px-8">
-                      Genera o edita el email para ver la vista previa
-                    </p>
-                  </div>
-                )}
-              </div>
-              {previewHtml && (
-                <p className="text-xs text-[#4B5563] mt-2 text-center">
-                  Simulacion de cliente de email — el resultado real puede variar
+          <div className="md:basis-[45%] md:shrink-0">
+            {/* Mobile toggle button */}
+            <button
+              className="md:hidden w-full flex items-center justify-center gap-2 mb-3 py-2 border border-[#E5E7EB] rounded-lg text-[13px] font-medium text-[#374151] bg-white"
+              onClick={() => setShowMobilePreview((v) => !v)}
+            >
+              {showMobilePreview ? 'Ocultar vista previa' : 'Ver vista previa'}
+            </button>
+            <div className={`sticky top-6 ${showMobilePreview ? 'block' : 'hidden md:block'}`}>
+              <p className="text-[12px] font-medium text-[#9EA3AE] text-center mb-2.5">
+                Vista previa
+              </p>
+              <EmailPreview
+                businessName={business?.name ?? ''}
+                businessColor={business?.primary_color ?? '#2563EB'}
+                subject={subject}
+                headline={headline}
+                body={body}
+                ctaText={ctaText}
+                footerText={footerText}
+              />
+              {(headline || body || subject) && (
+                <p className="text-[11px] text-[#9EA3AE] mt-2 text-center">
+                  Asi veran el email tus clientes en su bandeja de entrada
                 </p>
               )}
             </div>

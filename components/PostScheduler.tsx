@@ -126,6 +126,11 @@ export function PostScheduler({
         return
       }
 
+      if (data.success === false && data.error) {
+        setFeedback({ type: 'error', message: data.error })
+        return
+      }
+
       if (data.scheduled) {
         const dateStr = new Date(scheduledAt).toLocaleString('es-ES', {
           dateStyle: 'medium',

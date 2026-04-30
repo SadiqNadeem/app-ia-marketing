@@ -3,11 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { checkCanConnectSocial } from '@/lib/plans'
 
 const META_SCOPES = [
-  'instagram_basic',
-  'instagram_content_publish',
-  'pages_read_engagement',
   'pages_show_list',
-  'business_management',
+  'pages_read_engagement',
+  'public_profile',
 ].join(',')
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
@@ -65,6 +63,11 @@ export async function GET(): Promise<NextResponse> {
   })
 
   const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`
+
+  console.log('[meta/connect] redirect_uri:', redirectUri)
+  console.log('[meta/connect] scopes:', META_SCOPES)
+  console.log('[meta/connect] business_id (state):', business.id)
+  console.log('[meta/connect] auth_url:', authUrl)
 
   return NextResponse.redirect(authUrl)
 }

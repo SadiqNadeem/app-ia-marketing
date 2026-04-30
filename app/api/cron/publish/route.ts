@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getValidToken } from '@/lib/tokens'
-import { publishToPlatform } from '@/lib/publishers'
+import { publishToPlatform, type PublishResult } from '@/lib/publishers'
 import type { Post, SocialPlatform } from '@/types'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -36,7 +36,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   for (const post of duePosts as Post[]) {
     const platforms = post.platforms as SocialPlatform[]
-    const results: Record<string, { success: boolean; error?: string }> = {}
+    const results: Record<string, PublishResult> = {}
+
+    await admin
+      .from('posts')
+      .update({ status: 'publishing', error_message: null })
+      .eq('id', post.id)
 
     for (const platform of platforms) {
       const token = await getValidToken(post.business_id, platform)
@@ -56,6 +61,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const failedPlatforms = Object.entries(results)
       .filter(([, r]) => !r.success)
       .map(([p, r]) => `${p}: ${r.error}`)
+    const platformPostIds: Record<string, string> = {}
+    for (const [platform, result] of Object.entries(results)) {
+      if (result.success && result.platform_post_id) {
+        platformPostIds[platform] = result.platform_post_id
+      }
+    }
 
     await admin
       .from('posts')
@@ -63,6 +74,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         status: allSuccess ? 'published' : 'failed',
         published_at: allSuccess ? new Date().toISOString() : null,
         error_message: failedPlatforms.length > 0 ? failedPlatforms.join(' | ') : null,
+        external_post_id: Object.values(platformPostIds)[0] ?? null,
+        platform_post_ids: Object.keys(platformPostIds).length > 0 ? platformPostIds : {},
       })
       .eq('id', post.id)
 

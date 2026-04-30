@@ -51,34 +51,25 @@ export async function GET(): Promise<NextResponse> {
   const codeChallenge = generateCodeChallenge(codeVerifier)
 
   // ── Build TikTok auth URL ──────────────────────────────────────
-  const redirectUri = `${APP_URL}/api/auth/tiktok/callback`
-  console.log('[TikTok connect] APP_URL:', APP_URL)
-  console.log('[TikTok connect] redirect_uri:', redirectUri)
+  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/tiktok`
 
+  // Include verifier in state so the callback can use it
+  // regardless of which domain handles the redirect
   const params = new URLSearchParams({
     client_key: process.env.TIKTOK_CLIENT_KEY!,
     response_type: 'code',
     scope: 'user.info.basic,user.info.profile,video.list',
     redirect_uri: redirectUri,
-    state: JSON.stringify({ business_id: business.id, csrf: crypto.randomUUID() }),
+    state: JSON.stringify({
+      business_id: business.id,
+      csrf: crypto.randomUUID(),
+      cv: codeVerifier,
+    }),
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   })
 
   const authUrl = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`
 
-  console.log('REDIRECT_URI enviada a TikTok:', redirectUri)
-  console.log('URL completa de autorización:', authUrl.toString())
-
-  // ── Redirect and set httpOnly cookie with verifier ─────────────
-  const response = NextResponse.redirect(authUrl)
-  response.cookies.set('tiktok_cv', codeVerifier, {
-    httpOnly: true,
-    maxAge: 600, // 10 minutes
-    path: '/',
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  })
-
-  return response
+  return NextResponse.redirect(authUrl)
 }

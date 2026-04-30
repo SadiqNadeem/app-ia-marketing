@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Sidebar } from '@/components/Sidebar'
-import { TopBar } from '@/components/TopBar'
+import { DashboardShell } from '@/components/DashboardShell'
+import { PostsProvider } from '@/components/providers/PostsProvider'
 
 export default async function DashboardLayout({
   children,
@@ -24,20 +24,33 @@ export default async function DashboardLayout({
 
   if (!business) redirect('/onboarding')
 
+  const { data: networksData } = await supabase
+    .from('social_connections')
+    .select('platform, platform_username')
+    .eq('business_id', business.id)
+    .eq('is_active', true)
+
+  const connectedNetworks = (networksData ?? []) as Array<{
+    platform: string
+    platform_username: string | null
+  }>
+
   const userInitials = (user.email ?? 'U')
     .split('@')[0]
     .slice(0, 2)
     .toUpperCase()
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar business={business} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar businessId={business.id} userInitials={userInitials} />
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell
+      business={business}
+      connectedNetworks={connectedNetworks}
+      businessId={business.id}
+      userInitials={userInitials}
+      businessName={business.name}
+    >
+      <PostsProvider businessId={business.id}>
+        {children}
+      </PostsProvider>
+    </DashboardShell>
   )
 }

@@ -17,7 +17,6 @@ const SOCIAL_PLATFORM_KEYS: SocialPlatform[] = [
   'facebook',
   'tiktok',
   'google',
-  'whatsapp',
 ]
 
 type ConnectablePlatformEntry = {
@@ -29,7 +28,7 @@ type ConnectablePlatformEntry = {
 }
 
 type ComingSoonPlatformEntry = {
-  key: Exclude<DisplayPlatform, SocialPlatform>
+  key: DisplayPlatform
   label: string
   description: string
   comingSoon: true
@@ -62,35 +61,12 @@ const PLATFORMS: PlatformEntry[] = [
     description: 'Comparte novedades en tu ficha de Google Maps.',
     connectHref: '/api/auth/google/connect',
   },
-  {
-    key: 'whatsapp',
-    label: 'WhatsApp',
-    description: 'Atencion al cliente y promociones directas.',
-    connectHref: '/api/auth/meta/connect',
-  },
-  {
-    key: 'youtube',
-    label: 'YouTube',
-    description: 'Publica videos y crece con tu audiencia.',
-    comingSoon: true,
-  },
-  {
-    key: 'linkedin',
-    label: 'LinkedIn',
-    description: 'Construye tu marca profesional y B2B.',
-    comingSoon: true,
-  },
-  {
-    key: 'twitter',
-    label: 'X (Twitter)',
-    description: 'Comparte novedades en tiempo real.',
-    comingSoon: true,
-  },
 ]
 
 // ── Error / success message map ───────────────────────────────────
 const SUCCESS_MESSAGES: Record<string, string> = {
   meta: 'Instagram y Facebook conectados correctamente',
+  facebook: 'Facebook conectado correctamente',
   tiktok: 'TikTok conectado correctamente',
   google: 'Google Business conectado correctamente',
 }
@@ -108,12 +84,21 @@ const ERROR_MESSAGES: Record<string, string> = {
   google_denied: 'Conexion con Google cancelada',
 }
 
+const WARNING_MESSAGES: Record<string, string> = {
+  google_unverified:
+    'Tu ficha de Google Business no esta verificada. Google requiere verificacion para publicar novedades. Verifica tu negocio en business.google.com y vuelve a intentarlo.',
+  instagram_personal:
+    'Tu cuenta de Instagram es personal. Para publicar automaticamente necesitas convertirla a cuenta Profesional (Business o Creator) desde la app de Instagram: Configuracion → Tipo de cuenta y herramientas → Cambiar a cuenta profesional. Una vez convertida, vuelve a conectar.',
+}
+
 interface ConnectionsPageProps {
-  searchParams: Promise<{ success?: string; error?: string }>
+  searchParams: Promise<{ success?: string; error?: string; warning?: string }>
 }
 
 export default async function ConnectionsPage({ searchParams }: ConnectionsPageProps) {
-  const { success, error } = await searchParams
+  const { success, error, warning } = await searchParams
+
+  console.log('[connections/page] searchParams — success:', success, '| error:', error, '| warning:', warning)
 
   const supabase = await createClient()
 
@@ -130,13 +115,18 @@ export default async function ConnectionsPage({ searchParams }: ConnectionsPageP
 
   if (!business) redirect('/onboarding')
 
-  const [{ data: connections }, { allowed: canConnect }] = await Promise.all([
+  const [{ data: connections, error: connError }, { allowed: canConnect }] = await Promise.all([
     supabase
       .from('social_connections')
-      .select('platform, platform_username, is_active')
+      .select('*')
       .eq('business_id', business.id),
     checkCanConnectSocial(business.id),
   ])
+
+  if (connError) {
+    console.error('[connections/page] query error:', connError)
+  }
+  console.log('[connections/page] raw rows:', JSON.stringify(connections))
 
   const connectedMap = new Map(
     (connections ?? []).map((c) => [c.platform as SocialPlatform, c])
@@ -144,11 +134,15 @@ export default async function ConnectionsPage({ searchParams }: ConnectionsPageP
 
   const successMessage = success ? SUCCESS_MESSAGES[success] : null
   const errorMessage = error ? ERROR_MESSAGES[error] : null
+  const warningMessage = warning && warning !== 'facebook_no_pages'
+    ? (WARNING_MESSAGES[warning] ?? null)
+    : null
+  const facebookNoPages = warning === 'facebook_no_pages'
 
   const connectedCount = Array.from(connectedMap.values()).filter((c) => c.is_active).length
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-4xl mx-auto w-full">
+    <div className="flex flex-col gap-5 md:gap-8 p-4 md:p-6 max-w-4xl mx-auto w-full">
       <PageHeader
         title="Redes sociales"
         subtitle="Conecta tus cuentas para publicar directamente desde la app"
@@ -177,6 +171,11 @@ export default async function ConnectionsPage({ searchParams }: ConnectionsPageP
           {errorMessage}
         </Badge>
       )}
+      {warningMessage && (
+        <div style={{ padding: '12px 16px', borderRadius: 10, background: '#FFFBEB', border: '1px solid #FCD34D', fontSize: 13, color: '#92400E', lineHeight: 1.6 }}>
+          {warningMessage}
+        </div>
+      )}
 
       {/* Platform grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -194,6 +193,15 @@ export default async function ConnectionsPage({ searchParams }: ConnectionsPageP
 
           const conn = connectedMap.get(platform.key)
           const isConnected = !!conn && conn.is_active
+          const isProfessional = conn && 'is_professional' in conn
+            ? (conn as { is_professional: boolean | null }).is_professional
+            : null
+          const hasVerifiedLocation = conn && 'has_verified_location' in conn
+            ? (conn as { has_verified_location: boolean | null }).has_verified_location
+            : null
+          const isValid = conn && 'is_valid' in conn
+            ? (conn as { is_valid: boolean | null }).is_valid
+            : null
 
           return (
             <PlatformCard
@@ -206,6 +214,10 @@ export default async function ConnectionsPage({ searchParams }: ConnectionsPageP
               username={conn?.platform_username ?? null}
               canConnect={canConnect}
               businessId={business.id}
+              isProfessional={isProfessional}
+              noPagesBanner={platform.key === 'facebook' && facebookNoPages}
+              hasVerifiedLocation={hasVerifiedLocation}
+              isValid={isValid}
             />
           )
         })}
@@ -230,6 +242,10 @@ interface PlatformCardProps {
   username: string | null
   canConnect: boolean
   businessId: string
+  isProfessional?: boolean | null
+  noPagesBanner?: boolean | null
+  hasVerifiedLocation?: boolean | null
+  isValid?: boolean | null
 }
 
 function PlatformCard({
@@ -241,14 +257,30 @@ function PlatformCard({
   username,
   canConnect,
   businessId,
+  isProfessional,
+  noPagesBanner,
+  hasVerifiedLocation,
+  isValid,
 }: PlatformCardProps) {
+  const showPersonalWarning =
+    platformKey === 'instagram' && isConnected && isProfessional === false
+  const showGoogleUnverified =
+    platformKey === 'google' && isConnected && hasVerifiedLocation === false
+  const showExpiredBanner = isConnected && isValid === false
+
   return (
     <div
       className={[
         'flex flex-col gap-3 p-4 bg-white rounded-xl shadow-sm border transition-colors',
-        isConnected
-          ? 'border-green-200 ring-1 ring-green-100'
-          : 'border-brand-border',
+        showExpiredBanner
+          ? 'border-red-300 ring-1 ring-red-100'
+          : noPagesBanner || showGoogleUnverified
+          ? 'border-yellow-300 ring-1 ring-yellow-100'
+          : isConnected
+            ? showPersonalWarning
+              ? 'border-yellow-300 ring-1 ring-yellow-100'
+              : 'border-green-200 ring-1 ring-green-100'
+            : 'border-brand-border',
       ].join(' ')}
     >
       {/* Top row: icon + info + badge */}
@@ -259,7 +291,9 @@ function PlatformCard({
           <p className="text-xs text-brand-text-secondary leading-snug">{description}</p>
         </div>
         {isConnected ? (
-          <Badge variant="success" className="shrink-0">Conectada</Badge>
+          <Badge variant={showExpiredBanner ? 'error' : showPersonalWarning || showGoogleUnverified ? 'warning' : 'success'} className="shrink-0">
+            {showExpiredBanner ? 'Caducada' : showPersonalWarning ? 'Personal' : showGoogleUnverified ? 'No verificada' : 'Conectada'}
+          </Badge>
         ) : (
           <Badge variant="neutral" className="shrink-0">No conectada</Badge>
         )}
@@ -279,8 +313,78 @@ function PlatformCard({
         )}
       </div>
 
-      {/* Instagram analysis (only when connected) */}
-      {isConnected && platformKey === 'instagram' && (
+      {/* Facebook no pages warning */}
+      {noPagesBanner && (
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          fontSize: 13,
+          color: '#92400E',
+          lineHeight: 1.6,
+        }}>
+          No tienes ninguna pagina de Facebook. La API de Facebook solo permite publicar en Paginas, no en perfiles personales. Crea una Pagina en facebook.com/pages/create y vuelve a conectar.
+        </div>
+      )}
+
+      {/* Personal account warning */}
+      {showPersonalWarning && (
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          fontSize: 13,
+          color: '#92400E',
+          lineHeight: 1.6,
+        }}>
+          Tu cuenta de Instagram es personal. Para publicar automaticamente necesitas convertirla a cuenta Profesional (Business o Creator) desde la app de Instagram: Configuracion → Tipo de cuenta y herramientas → Cambiar a cuenta profesional. Una vez convertida, vuelve a conectar.
+        </div>
+      )}
+
+      {/* Expired token reconnect banner */}
+      {showExpiredBanner && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 8,
+          background: '#FEF2F2', border: '1px solid #FCA5A5',
+          fontSize: 13, color: '#991B1B', marginTop: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <span>La conexion ha caducado. Vuelve a conectar tu cuenta.</span>
+          <a
+            href={connectHref}
+            style={{
+              padding: '6px 12px', borderRadius: 6,
+              background: '#DC2626', border: 'none',
+              color: 'white', fontSize: 12, fontWeight: 600,
+              textDecoration: 'none', whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            Reconectar
+          </a>
+        </div>
+      )}
+
+      {/* Google Business unverified warning */}
+      {showGoogleUnverified && (
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          fontSize: 13,
+          color: '#92400E',
+          lineHeight: 1.6,
+        }}>
+          Tu ficha de Google Business no esta verificada. Google requiere verificacion para publicar novedades. Verifica tu negocio en business.google.com y vuelve a intentarlo.
+        </div>
+      )}
+
+      {/* Instagram analysis (only when connected and professional) */}
+      {isConnected && platformKey === 'instagram' && isProfessional !== false && (
         <InstagramAnalysisSection businessId={businessId} />
       )}
     </div>
@@ -288,7 +392,7 @@ function PlatformCard({
 }
 
 interface ComingSoonCardProps {
-  platformKey: Exclude<DisplayPlatform, SocialPlatform>
+  platformKey: DisplayPlatform
   label: string
   description: string
 }

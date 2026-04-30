@@ -35,6 +35,7 @@ interface PageWithIg {
 interface IgUserInfo {
   id: string
   username: string
+  account_type?: string // BUSINESS | MEDIA_CREATOR | PERSONAL
 }
 
 // ── Fetch wrapper that throws on non-ok ──────────────────────────
@@ -51,6 +52,10 @@ async function gFetch<T>(url: string): Promise<T> {
 // ── Redirect helpers ──────────────────────────────────────────────
 function errRedirect(code: string) {
   return NextResponse.redirect(`${APP_URL}/dashboard/connections?error=${code}`)
+}
+
+function warnRedirect(code: string) {
+  return NextResponse.redirect(`${APP_URL}/dashboard/connections?warning=${code}`)
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -73,6 +78,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       code,
     })
 
+    console.log('[meta/callback] code:', code?.slice(0, 12) + '...', '| business_id:', businessId)
+    console.log('[meta/callback] redirect_uri used:', REDIRECT_URI)
+
     let shortToken: TokenResponse
     try {
       const res = await fetch(`${GRAPH}/oauth/access_token`, {
@@ -81,9 +89,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         body: shortTokenParams.toString(),
       })
       const json = await res.json()
+      console.log('[meta/callback] short-token status:', res.status, '| body:', JSON.stringify(json))
       if (!res.ok) throw new Error(json?.error?.message ?? 'token exchange failed')
       shortToken = json as TokenResponse
-    } catch {
+    } catch (err) {
+      console.error('[meta/callback] short-token error:', err)
       return errRedirect('meta_token')
     }
 
@@ -100,7 +110,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let longToken: TokenResponse
     try {
       longToken = await gFetch<TokenResponse>(longTokenUrl)
-    } catch {
+      console.log('[meta/callback] long-token ok, expires_in:', longToken.expires_in)
+    } catch (err) {
+      console.error('[meta/callback] long-token error:', err)
       return errRedirect('meta_token')
     }
 
@@ -117,49 +129,113 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       pages = await gFetch<PagesResponse>(
         `${GRAPH}/me/accounts?access_token=${longLivedToken}`
       )
-    } catch {
+      console.log('[meta/callback] pages count:', pages.data?.length ?? 0, '| page ids:', pages.data?.map(p => p.id))
+    } catch (err) {
+      console.error('[meta/callback] pages fetch error:', err)
       return errRedirect('meta_token')
     }
 
+    const admin = createAdminClient()
+
+    // ── 4b. No pages — Facebook requires a Page to publish ────────
     if (!pages.data || pages.data.length === 0) {
-      return errRedirect('no_instagram_business')
+      await admin.from('social_connections').upsert(
+        {
+          business_id: businessId,
+          platform: 'facebook',
+          access_token: longLivedToken,
+          has_pages: false,
+          is_active: false,
+        },
+        { onConflict: 'business_id,platform' }
+      )
+      return warnRedirect('facebook_no_pages')
     }
 
-    // Use the first page
+    // ── 4c. Multiple pages — let user choose the Facebook page ────
+    if (pages.data.length > 1) {
+      // Try to save Instagram using the first page that has an IG account
+      const firstPage = pages.data[0]
+      try {
+        const pageWithIg = await gFetch<PageWithIg>(
+          `${GRAPH}/${firstPage.id}?fields=instagram_business_account&access_token=${firstPage.access_token}`
+        )
+        if (pageWithIg.instagram_business_account?.id) {
+          const igAccountId = pageWithIg.instagram_business_account.id
+          const igUser = await gFetch<IgUserInfo>(
+            `${GRAPH}/${igAccountId}?fields=username,account_type&access_token=${firstPage.access_token}`
+          )
+          const igAccountType = igUser.account_type ?? 'BUSINESS'
+          const isProfessional = ['BUSINESS', 'MEDIA_CREATOR'].includes(igAccountType)
+          await admin.from('social_connections').upsert(
+            {
+              business_id: businessId,
+              platform: 'instagram',
+              access_token: longLivedToken,
+              refresh_token: null,
+              token_expires_at: tokenExpiresAt,
+              platform_user_id: igAccountId,
+              platform_username: igUser.username,
+              account_type: igAccountType,
+              is_professional: isProfessional,
+              is_active: true,
+            },
+            { onConflict: 'business_id,platform' }
+          )
+          runInstagramImport(businessId).catch(err =>
+            console.error('[meta/callback] instagram import error (multi-page):', err)
+          )
+        }
+      } catch { /* non-critical — continue to FB page selector */ }
+
+      const pagesEncoded = encodeURIComponent(
+        JSON.stringify(pages.data.map((p) => ({ id: p.id, name: p.name, token: p.access_token })))
+      )
+      return NextResponse.redirect(
+        `${APP_URL}/dashboard/connections/facebook-pages?pages=${pagesEncoded}&business_id=${businessId}`
+      )
+    }
+
+    // ── 5. Single page — use it automatically ─────────────────────
     const page = pages.data[0]
     const pageAccessToken = page.access_token
     const pageId = page.id
     const pageName = page.name
 
-    // ── 5. Get Instagram Business Account ────────────────────────
+    // ── 5a. Get Instagram Business Account ───────────────────────
     let pageWithIg: PageWithIg
     try {
       pageWithIg = await gFetch<PageWithIg>(
         `${GRAPH}/${pageId}?fields=instagram_business_account&access_token=${pageAccessToken}`
       )
-    } catch {
+      console.log('[meta/callback] pageWithIg:', JSON.stringify(pageWithIg))
+    } catch (err) {
+      console.error('[meta/callback] pageWithIg fetch error:', err)
       return errRedirect('meta_unknown')
     }
 
     if (!pageWithIg.instagram_business_account?.id) {
+      console.warn('[meta/callback] no instagram_business_account on page', pageId)
       return errRedirect('no_instagram_business')
     }
 
     const igAccountId = pageWithIg.instagram_business_account.id
 
-    // ── 6. Get Instagram username ─────────────────────────────────
+    // ── 5b. Get Instagram username + account_type ────────────────
     let igUser: IgUserInfo
     try {
       igUser = await gFetch<IgUserInfo>(
-        `${GRAPH}/${igAccountId}?fields=username&access_token=${pageAccessToken}`
+        `${GRAPH}/${igAccountId}?fields=username,account_type&access_token=${pageAccessToken}`
       )
     } catch {
       return errRedirect('meta_unknown')
     }
 
-    // ── 7. Upsert with service role (bypasses RLS) ────────────────
-    const admin = createAdminClient()
+    const igAccountType = igUser.account_type ?? 'BUSINESS'
+    const isProfessional = ['BUSINESS', 'MEDIA_CREATOR'].includes(igAccountType)
+    console.log('[meta/callback] IG account_type:', igAccountType, '| isProfessional:', isProfessional)
 
+    // ── 6. Upsert with service role (bypasses RLS) ────────────────
     const fbExpiresAt = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString()
 
     const upserts = [
@@ -167,22 +243,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       {
         business_id: businessId,
         platform: 'instagram',
-        access_token: pageAccessToken,
+        access_token: longLivedToken,
         refresh_token: null,
         token_expires_at: tokenExpiresAt,
         platform_user_id: igAccountId,
         platform_username: igUser.username,
+        account_type: igAccountType,
+        is_professional: isProfessional,
         is_active: true,
       },
       // Facebook page connection
       {
         business_id: businessId,
         platform: 'facebook',
-        access_token: longLivedToken,
+        access_token: pageAccessToken,
         refresh_token: null,
         token_expires_at: fbExpiresAt,
         platform_user_id: pageId,
         platform_username: pageName,
+        has_pages: true,
         is_active: true,
       },
     ]
@@ -196,13 +275,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return errRedirect('meta_unknown')
     }
 
-    // ── 8. Trigger Instagram import in background ─────────────────
-    // Fire-and-forget: runs after the redirect is issued
+    // ── 7. Trigger Instagram import in background ─────────────────
     runInstagramImport(businessId).catch(err =>
       console.error('[meta/callback] instagram import error:', err)
     )
 
-    // ── 9. Success ────────────────────────────────────────────────
+    // ── 8. Success (or personal-account warning) ──────────────────
+    if (!isProfessional) {
+      return NextResponse.redirect(`${APP_URL}/dashboard/connections?success=meta&warning=instagram_personal`)
+    }
     return NextResponse.redirect(`${APP_URL}/dashboard/connections?success=meta`)
   } catch (err) {
     console.error('[meta/callback] unexpected error:', err)

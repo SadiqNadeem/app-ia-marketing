@@ -7,6 +7,7 @@ import type { Post, PostStatus, SocialPlatform } from '@/types'
 // ── Status config ──────────────────────────────────────────────────
 const STATUS: Record<PostStatus, { bar: string; bg: string; color: string; label: string }> = {
   published: { bar: '#10B981', bg: '#D1FAE5', color: '#065F46', label: 'Publicado'  },
+  publishing:{ bar: '#3B82F6', bg: '#DBEAFE', color: '#1E40AF', label: 'Publicando' },
   scheduled: { bar: '#F59E0B', bg: '#FEF3C7', color: '#92400E', label: 'Programado' },
   draft:     { bar: '#D1D5DB', bg: '#F3F4F6', color: '#374151', label: 'Borrador'   },
   failed:    { bar: '#EF4444', bg: '#FEE2E2', color: '#991B1B', label: 'Fallido'    },
@@ -44,8 +45,12 @@ function EmptyQueue({ filter }: { filter: Filter }) {
     ? 'Aun no has publicado nada'
     : filter === 'scheduled'
     ? 'No tienes publicaciones programadas'
+    : filter === 'publishing'
+    ? 'No hay publicaciones en proceso de publicacion'
     : filter === 'published'
     ? 'No hay publicaciones publicadas'
+    : filter === 'failed'
+    ? 'No hay publicaciones fallidas'
     : 'No hay borradores'
 
   return (
@@ -112,6 +117,7 @@ export function DashboardMainContent({ posts }: Props) {
   // Counts
   const counts = {
     published: posts.filter(p => p.status === 'published').length,
+    publishing: posts.filter(p => p.status === 'publishing').length,
     scheduled: posts.filter(p => p.status === 'scheduled').length,
     draft:     posts.filter(p => p.status === 'draft').length,
     failed:    posts.filter(p => p.status === 'failed').length,
@@ -121,8 +127,10 @@ export function DashboardMainContent({ posts }: Props) {
   const FILTERS: { key: Filter; label: string; count?: number }[] = [
     { key: 'all',       label: 'Todas'       },
     { key: 'published', label: 'Publicadas',  count: counts.published  },
+    { key: 'publishing',label: 'Publicando',  count: counts.publishing },
     { key: 'scheduled', label: 'Programadas', count: counts.scheduled  },
     { key: 'draft',     label: 'Borradores',  count: counts.draft      },
+    { key: 'failed',    label: 'Fallidas',    count: counts.failed     },
   ]
 
   return (
@@ -252,7 +260,7 @@ export function DashboardMainContent({ posts }: Props) {
 
           {/* Inline tab strip — Uber style */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {FILTERS.map(({ key, label, count }, idx) => (
+            {FILTERS.map(({ key, label, count }) => (
               <button
                 key={key}
                 onClick={() => setFilter(key)}

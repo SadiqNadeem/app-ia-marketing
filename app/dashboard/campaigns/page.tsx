@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Lock, Users, TrendingUp, MessageSquare } from 'lucide-react'
 import { fixEncoding } from '@/lib/fix-encoding'
+import { WhatsAppPreview } from '@/components/WhatsAppPreview'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -178,6 +179,7 @@ export default function CampaignsPage() {
   const supabase = createClient()
 
   const [businessId, setBusinessId] = useState('')
+  const [businessName, setBusinessName] = useState('')
   const [plan, setPlan] = useState<string>('basic')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('new')
@@ -199,6 +201,7 @@ export default function CampaignsPage() {
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showMobilePreview, setShowMobilePreview] = useState(false)
 
   // Free-user form state
   const [freeMessage, setFreeMessage] = useState('')
@@ -232,13 +235,14 @@ export default function CampaignsPage() {
 
       const { data: biz } = await supabase
         .from('businesses')
-        .select('id, plan')
+        .select('id, plan, name')
         .eq('owner_id', user.id)
         .single()
 
       if (!biz) { router.push('/onboarding'); return }
 
       setBusinessId(biz.id)
+      setBusinessName(biz.name ?? '')
       setPlan(biz.plan)
       setLoading(false)
 
@@ -451,7 +455,7 @@ export default function CampaignsPage() {
                       value={freeCampaignName}
                       onChange={e => setFreeCampaignName(e.target.value)}
                       placeholder="Ej: Oferta del fin de semana"
-                      className="border border-[#EAECF0] rounded-lg px-3 py-2 text-[13px] text-[#111827] placeholder-[#9EA3AE] focus:outline-none focus:border-[#1A56DB] transition-colors"
+                      className="border border-[#C4C9D4] rounded-lg px-3 py-2 text-[13px] text-[#111827] placeholder-[#9EA3AE] focus:outline-none focus:border-[#1A56DB] transition-colors bg-white"
                     />
                   </div>
 
@@ -464,7 +468,7 @@ export default function CampaignsPage() {
                       value={freeMessage}
                       onChange={e => setFreeMessage(e.target.value)}
                       placeholder="Hola! Tenemos una oferta especial para ti este fin de semana. Visita nuestro local y disfruta de un 20% de descuento en toda la carta."
-                      className="border border-[#EAECF0] rounded-lg px-3 py-2 text-[13px] text-[#111827] placeholder-[#9EA3AE] resize-none focus:outline-none focus:border-[#1A56DB] transition-colors"
+                      className="border border-[#C4C9D4] rounded-lg px-3 py-2 text-[13px] text-[#111827] placeholder-[#9EA3AE] resize-none focus:outline-none focus:border-[#1A56DB] transition-colors bg-white"
                     />
                     <p className="text-[11px] text-[#9EA3AE]">
                       {freeMessage.length} / 1024 caracteres
@@ -472,11 +476,11 @@ export default function CampaignsPage() {
                   </div>
 
                   {/* Destinatarios preview */}
-                  <div className="border border-[#EAECF0] rounded-[10px] px-4 py-3">
+                  <div className="border border-[#C4C9D4] rounded-[10px] px-4 py-3 bg-white">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Users size={14} strokeWidth={2} className="text-[#9EA3AE]" />
-                        <span className="text-[13px] font-medium text-[#111827]">Destinatarios</span>
+                        <Users size={14} strokeWidth={2} className="text-[#5A6070]" />
+                        <span className="text-[13px] font-semibold text-[#111827]">Destinatarios</span>
                       </div>
                       <span className="text-[13px] font-semibold text-[#1A56DB]">
                         {customersWithPhone.length} clientes
@@ -496,7 +500,7 @@ export default function CampaignsPage() {
                       </div>
                     )}
                     {customersWithPhone.length === 0 && (
-                      <p className="text-[12px] text-[#9EA3AE] mt-1">
+                      <p className="text-[12px] text-[#5A6070] mt-1">
                         Agrega clientes con telefono para poder enviarles campanas
                       </p>
                     )}
@@ -506,7 +510,7 @@ export default function CampaignsPage() {
                   <div className="flex flex-col gap-2">
                     <button
                       disabled
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#EAECF0] bg-[#F4F5F7] text-[13px] font-semibold text-[#9EA3AE] cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#C4C9D4] bg-[#F4F5F7] text-[13px] font-semibold text-[#6B7280] cursor-not-allowed"
                     >
                       <Lock size={13} strokeWidth={2} />
                       Enviar campana
@@ -525,7 +529,18 @@ export default function CampaignsPage() {
 
                 {/* Right — Preview */}
                 <div className="flex flex-col gap-4">
-                  <WaBubble message={freeMessage} header={freeCampaignName || undefined} />
+                  {/* Mobile toggle */}
+                  <button
+                    className="sm:hidden w-full flex items-center justify-center gap-2 py-2 border border-[#E5E7EB] rounded-lg text-[13px] font-medium text-[#374151] bg-white"
+                    onClick={() => setShowMobilePreview((v) => !v)}
+                  >
+                    {showMobilePreview ? 'Ocultar vista previa' : 'Ver vista previa'}
+                  </button>
+                  <div className={`${showMobilePreview ? 'flex' : 'hidden sm:flex'} flex-col gap-4`}>
+                  <p className="text-[12px] font-medium text-[#9EA3AE] text-center">
+                    Vista previa
+                  </p>
+                  <WhatsAppPreview businessName={businessName} message={freeMessage} />
 
                   {/* Value props */}
                   <div className="flex flex-col gap-2">
@@ -540,6 +555,7 @@ export default function CampaignsPage() {
                       </div>
                     ))}
                   </div>
+                  </div>{/* end mobile-preview wrapper */}
                 </div>
               </div>
             </div>

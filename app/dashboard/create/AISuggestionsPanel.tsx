@@ -32,13 +32,16 @@ interface AISuggestionsPanelProps {
   onImprove: (instruction?: string) => void
   onDuplicate: () => void
   onSaveTemplate: () => void
+  onSaveDraft: () => void
+  onPublishNow: () => void
+  publishing: boolean
 }
 
 const QUICK_ACTIONS: { label: string; instruction: string }[] = [
-  { label: 'Hazlo mas urgente',     instruction: 'Reescribe el texto con mas urgencia y sensacion de escasez o tiempo limitado' },
-  { label: 'CTA mas claro',         instruction: 'Reescribe el texto anadiendo una llamada a la accion clara y directa al final' },
-  { label: 'Version mas corta',     instruction: 'Reescribe el texto de forma mucho mas concisa, maximo 3 frases' },
-  { label: 'Tono mas cercano',      instruction: 'Reescribe el texto con un tono mas cercano, amigable y conversacional' },
+  { label: '⚡ Mas urgente',   instruction: 'Reescribe el texto con mas urgencia y sensacion de escasez o tiempo limitado' },
+  { label: '✂️ Mas corto',    instruction: 'Reescribe el texto de forma mucho mas concisa, maximo 3 frases' },
+  { label: '💬 Mas cercano',  instruction: 'Reescribe el texto con un tono mas cercano, amigable y conversacional' },
+  { label: '📣 CTA mas claro',instruction: 'Reescribe el texto anadiendo una llamada a la accion clara y directa al final' },
 ]
 
 const CAPTION_MIN = 20
@@ -87,6 +90,9 @@ export function AISuggestionsPanel({
   onImprove,
   onDuplicate,
   onSaveTemplate,
+  onSaveDraft,
+  onPublishNow,
+  publishing,
 }: AISuggestionsPanelProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -205,38 +211,69 @@ export function AISuggestionsPanel({
           </p>
         </div>
 
-        {/* Variant cards */}
-        <div>
+        {/* Variant selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <p style={label}>Opciones generadas</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {variants.length === 0
-              ? [1, 2, 3].map((n) => (
-                  <div
-                    key={n}
-                    style={{
-                      borderRadius: 10,
-                      border: '1px dashed #EAECF0',
-                      padding: '12px',
-                      minHeight: 72,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {loading ? (
-                      <>
-                        <div style={{ height: 8, borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', width: '40%' }} />
-                        <div style={{ height: 8, borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', width: '90%' }} />
-                        <div style={{ height: 8, borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', width: '70%' }} />
-                        <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 11, color: '#9EA3AE', textAlign: 'center' }}>Variante {n}</span>
-                    )}
+          <style>{`
+            @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+            @keyframes fadeInUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+          `}</style>
+
+          {/* Loading — skeleton cards */}
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  style={{
+                    borderRadius: 10,
+                    border: '1px dashed #EAECF0',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 7,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ height: 8, width: 60, borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                    <div style={{ height: 8, width: 30, borderRadius: 100, background: 'linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
                   </div>
-                ))
-              : variants.map((v, idx) => {
+                  <div style={{ height: 8, width: '100%', borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                  <div style={{ height: 8, width: '80%', borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                  <div style={{ height: 8, width: '60%', borderRadius: 4, background: 'linear-gradient(90deg,#F3F4F6 25%,#E9EAEC 50%,#F3F4F6 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty — placeholder cards */}
+          {!loading && variants.length === 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  style={{
+                    borderRadius: 10,
+                    border: '1px dashed #EAECF0',
+                    padding: '12px',
+                    minHeight: 64,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 11, color: '#9EA3AE' }}>Variante {n}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Generated — tab pills + active preview card */}
+          {!loading && variants.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Tab pills */}
+              <div style={{ display: 'flex', gap: 5 }}>
+                {variants.map((_, idx) => {
                   const isSelected = selectedIdx === idx
                   const isEdited   = manuallyEdited[idx] ?? false
                   return (
@@ -244,78 +281,78 @@ export function AISuggestionsPanel({
                       key={idx}
                       onClick={() => onSelectVariant(idx)}
                       style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        borderRadius: 10,
-                        border: '1px solid',
-                        borderColor: isSelected ? '#1A56DB' : '#EAECF0',
-                        backgroundColor: isSelected ? '#EEF3FE' : '#FFFFFF',
-                        padding: '10px 12px',
+                        padding: '5px 12px',
+                        borderRadius: 100,
+                        border: `1.5px solid ${isSelected ? '#1A56DB' : '#EAECF0'}`,
+                        background: isSelected ? '#EEF3FE' : 'transparent',
+                        color: isSelected ? '#1A56DB' : '#5A6070',
+                        fontSize: 12,
+                        fontWeight: isSelected ? 700 : 400,
                         cursor: 'pointer',
                         transition: 'all 120ms ease',
                         fontFamily: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
                       }}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: 6,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 500,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            color: isSelected ? '#1A56DB' : '#9EA3AE',
-                          }}
-                        >
-                          Variante {idx + 1}
-                        </span>
-                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                          {isEdited && (
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 600,
-                                padding: '1px 6px',
-                                borderRadius: 999,
-                                backgroundColor: '#FEF3C7',
-                                color: '#92400E',
-                                border: '1px solid #FDE68A',
-                              }}
-                            >
-                              Editado
-                            </span>
-                          )}
-                          {isSelected && (
-                            <span style={{ fontSize: 10, color: '#1A56DB', fontWeight: 500 }}>
-                              Activa
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p
-                        style={{
-                          fontSize: 12,
-                          color: '#111827',
-                          lineHeight: 1.55,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {editedTexts[idx] ?? v.text}
-                      </p>
+                      V{idx + 1}
+                      {isEdited && (
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#D97706', flexShrink: 0 }} />
+                      )}
                     </button>
                   )
                 })}
-          </div>
+              </div>
+
+              {/* Active variant preview card */}
+              {activeVariant && (
+                <div
+                  style={{
+                    borderRadius: 10,
+                    border: '1.5px solid #1A56DB',
+                    background: '#EEF3FE',
+                    padding: '12px',
+                    animation: 'fadeInUp 200ms ease forwards',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: '#111827',
+                      lineHeight: 1.6,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      margin: 0,
+                    }}
+                  >
+                    {activeText || activeVariant.text}
+                  </p>
+                  {activeHashtags.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {activeHashtags.map((h) => (
+                        <span
+                          key={h}
+                          style={{
+                            fontSize: 10,
+                            padding: '2px 7px',
+                            borderRadius: 100,
+                            background: 'rgba(26,86,219,0.10)',
+                            color: '#1A56DB',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Full editor (only when a variant is selected) ── */}
@@ -649,42 +686,38 @@ export function AISuggestionsPanel({
           </div>
         )}
 
-        {/* Quick actions */}
+        {/* Quick actions — 2x2 grid */}
         <div>
-          <p style={label}>Sugerencias IA</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={label}>Mejoras IA</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
             {QUICK_ACTIONS.map(({ label: actionLabel, instruction }) => (
               <button
                 key={actionLabel}
                 onClick={() => onImprove(instruction)}
                 disabled={!hasVariants || improving}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '8px 10px',
+                  padding: '7px 8px',
                   borderRadius: 8,
-                  fontSize: 12,
-                  color: !hasVariants ? '#9EA3AE' : '#1A56DB',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: !hasVariants || improving ? 'default' : 'pointer',
+                  border: '1px solid #EAECF0',
+                  background: hasVariants ? '#FFFFFF' : '#F9FAFB',
+                  color: hasVariants ? '#1A56DB' : '#9EA3AE',
+                  fontSize: 11,
+                  fontWeight: 500,
+                  cursor: hasVariants && !improving ? 'pointer' : 'default',
+                  transition: 'all 120ms ease',
+                  opacity: hasVariants ? 1 : 0.5,
+                  textAlign: 'center',
                   fontFamily: 'inherit',
-                  transition: 'background-color 120ms ease',
-                  opacity: !hasVariants ? 0.5 : 1,
                 }}
                 onMouseEnter={(e) => {
                   if (hasVariants && !improving) {
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#EEF3FE'
+                    (e.currentTarget as HTMLButtonElement).style.background = '#EEF3FE'
                   }
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
+                  (e.currentTarget as HTMLButtonElement).style.background = hasVariants ? '#FFFFFF' : '#F9FAFB'
                 }}
               >
-                <span style={{ fontSize: 10, opacity: 0.6 }}>↗</span>
                 {actionLabel}
               </button>
             ))}
@@ -703,7 +736,7 @@ export function AISuggestionsPanel({
         }}
       >
         {/* Primary actions */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 7 }}>
           <Button
             variant="secondary"
             onClick={onRegenerate}
@@ -712,17 +745,39 @@ export function AISuggestionsPanel({
             size="sm"
             style={{ flex: 1, fontSize: 12 }}
           >
-            Regenerar
+            ↺ Regenerar
           </Button>
           <Button
             variant="secondary"
-            onClick={onImprove}
+            onClick={() => onImprove()}
             loading={improving}
             disabled={loading || variants.length === 0}
             size="sm"
             style={{ flex: 1, fontSize: 12 }}
           >
-            Mejorar texto
+            ✦ Mejorar texto
+          </Button>
+        </div>
+
+        {/* Draft / publish actions */}
+        <div style={{ display: 'flex', gap: 7 }}>
+          <Button
+            variant="secondary"
+            onClick={onSaveDraft}
+            disabled={loading || improving || publishing || !hasVariants}
+            size="sm"
+            style={{ flex: 1, fontSize: 12 }}
+          >
+            Guardar borrador
+          </Button>
+          <Button
+            onClick={onPublishNow}
+            loading={publishing}
+            disabled={loading || improving || !hasVariants}
+            size="sm"
+            style={{ flex: 1, fontSize: 12 }}
+          >
+            Publicar ahora
           </Button>
         </div>
 

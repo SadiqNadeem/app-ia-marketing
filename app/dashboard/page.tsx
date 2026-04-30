@@ -1,10 +1,9 @@
+import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { DashboardMainContent } from '@/components/DashboardMainContent'
-import { DashboardAIPanel } from '@/components/DashboardAIPanel'
-import { DashboardActivityChart } from '@/components/DashboardActivityChart'
-import { DashboardAnalyticsSection } from '@/components/DashboardAnalyticsSection'
+import { Send, Share2, Users, Library, Sparkles, Plus } from 'lucide-react'
+import { ConnectSocialsModal } from '@/components/dashboard/ConnectSocialsModal'
 import type { Post } from '@/types'
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -12,91 +11,161 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-const PLATFORM_LABELS: Record<string, string> = {
-  instagram: 'Instagram',
-  facebook: 'Facebook',
-  tiktok: 'TikTok',
-  google: 'Google',
-  whatsapp: 'WhatsApp',
+function getGreeting(hour: number): string {
+  if (hour < 12) return 'Buenos dias'
+  if (hour < 20) return 'Buenas tardes'
+  return 'Buenas noches'
 }
 
-// ── KPI item ─────────────────────────────────────────────────────────
-function KPIItem({
-  value, label, delta,
+function getAISuggestion(day: number): string {
+  if (day === 1) return 'Empieza la semana con fuerza. Publica el menu del dia o una novedad.'
+  if (day >= 2 && day <= 4) return 'Buen momento para publicar contenido educativo o de valor.'
+  if (day === 5) return 'Es viernes — ideal para una promocion de fin de semana.'
+  if (day === 6) return 'Sabado de alta actividad. Publica algo especial para hoy.'
+  return 'Domingo tranquilo. Prepara contenido para la semana.'
+}
+
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `hace ${mins}m`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `hace ${hrs}h`
+  const days = Math.floor(hrs / 24)
+  return `hace ${days}d`
+}
+
+// ── Stat card ────────────────────────────────────────────────────────
+function StatCard({
+  label, value, delta, icon, deltaLabel,
 }: {
-  value: number
   label: string
+  value: number | string
   delta?: number
+  icon: ReactNode
+  deltaLabel?: string
 }) {
-  const isEmpty = value === 0
+  const isEmpty = value === 0 || value === '0'
   return (
-    <div style={{ minWidth: 80 }}>
-      <p style={{
-        fontSize: 9, fontWeight: 500, color: '#4B5563',
-        textTransform: 'uppercase', letterSpacing: '0.09em',
-        margin: '0 0 5px',
-      }}>
-        {label}
-      </p>
-      <p style={{
-        fontSize: 28, fontWeight: 600,
-        color: isEmpty ? '#D1D5DB' : '#111827',
-        margin: 0, letterSpacing: '-1.5px', lineHeight: 1,
-      }}>
+    <div
+      style={{
+        background: '#FFFFFF',
+        borderRadius: 12,
+        padding: '16px 16px',
+        border: '1px solid #E5E7EB',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <p style={{ fontSize: 11, color: '#6B7280', fontWeight: 500, margin: 0, lineHeight: 1.3 }}>{label}</p>
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 7,
+            background: '#EFF6FF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
+      </div>
+      <p
+        style={{
+          fontSize: 24,
+          fontWeight: 800,
+          color: isEmpty ? '#D1D5DB' : '#111827',
+          margin: '10px 0 0',
+          letterSpacing: '-0.03em',
+          lineHeight: 1,
+        }}
+      >
         {isEmpty ? '—' : value}
       </p>
-      {delta !== undefined && delta !== 0 && !isEmpty && (
-        <span style={{
-          display: 'inline-block', marginTop: 4,
-          fontSize: 10, fontWeight: 700,
-          color: delta > 0 ? '#10B981' : '#EF4444',
-          background: delta > 0 ? '#D1FAE5' : '#FEE2E2',
-          borderRadius: 4, padding: '1px 6px',
-        }}>
-          {delta > 0 ? `↑ +${delta}` : `↓ ${delta}`}
-        </span>
-      )}
-    </div>
-  )
-}
-
-// ── Redes activas KPI — lógica de color y subtexto propia ────────────
-function NetworksKPIItem({ count, platforms }: { count: number; platforms: string[] }) {
-  return (
-    <div style={{ minWidth: 80 }}>
-      <p style={{
-        fontSize: 9, fontWeight: 500, color: '#4B5563',
-        textTransform: 'uppercase', letterSpacing: '0.09em',
-        margin: '0 0 5px',
-      }}>
-        Redes activas
-      </p>
-      <p style={{
-        fontSize: 28, fontWeight: 600,
-        color: count === 0 ? '#E02424' : '#0E9F6E',
-        margin: 0, letterSpacing: '-1.5px', lineHeight: 1,
-      }}>
-        {count}
-      </p>
-      {count === 0 ? (
-        <a href="/dashboard/connections" style={{
-          display: 'inline-block', marginTop: 4,
-          fontSize: 11, fontWeight: 600, color: '#1A56DB', textDecoration: 'none',
-        }}>
-          Conectar →
-        </a>
-      ) : (
-        <p style={{ fontSize: 10, color: '#9E9688', margin: '4px 0 0', lineHeight: 1.3 }}>
-          {platforms.map(p => PLATFORM_LABELS[p] ?? p).join(', ')}
+      {delta !== undefined && delta !== 0 && !isEmpty ? (
+        <p style={{ fontSize: 11, color: delta > 0 ? '#16A34A' : '#DC2626', marginTop: 4, fontWeight: 600 }}>
+          {delta > 0 ? `+${delta}` : `${delta}`} vs. mes ant.
         </p>
-      )}
+      ) : deltaLabel ? (
+        <p style={{ fontSize: 11, color: '#6B7280', marginTop: 4 }}>{deltaLabel}</p>
+      ) : null}
     </div>
   )
 }
 
-// ── Vertical divider ─────────────────────────────────────────────────
-function Divider() {
-  return <div style={{ width: 1, alignSelf: 'stretch', background: '#E5E7EB', flexShrink: 0 }} />
+// ── Platform icon ────────────────────────────────────────────────────
+const PLATFORM_COLORS: Record<string, string> = {
+  instagram: '#E1306C',
+  facebook: '#1877F2',
+  tiktok: '#010101',
+  google: '#4285F4',
+  whatsapp: '#25D366',
+}
+
+const PLATFORM_LABELS: Record<string, string> = {
+  instagram: 'IG',
+  facebook: 'FB',
+  tiktok: 'TK',
+  google: 'GO',
+  whatsapp: 'WA',
+}
+
+function PlatformIcon({ platform }: { platform: string }) {
+  return (
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        background: '#F9FAFB',
+        border: '1px solid #F3F4F6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: PLATFORM_COLORS[platform] ?? '#6B7280',
+        }}
+      >
+        {PLATFORM_LABELS[platform] ?? platform.slice(0, 2).toUpperCase()}
+      </span>
+    </div>
+  )
+}
+
+// ── Status badge ─────────────────────────────────────────────────────
+const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  published: { bg: '#DCFCE7', color: '#15803D', label: 'Publicado' },
+  scheduled: { bg: '#EFF6FF', color: '#1D4ED8', label: 'Programado' },
+  draft:     { bg: '#F3F4F6', color: '#4B5563', label: 'Borrador' },
+  failed:    { bg: '#FEE2E2', color: '#DC2626', label: 'Fallido' },
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.draft
+  return (
+    <span
+      style={{
+        background: s.bg,
+        color: s.color,
+        borderRadius: 100,
+        padding: '3px 9px',
+        fontSize: 11,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {s.label}
+    </span>
+  )
 }
 
 // ── Page ─────────────────────────────────────────────────────────────
@@ -117,18 +186,14 @@ export default async function DashboardPage() {
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-  const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
-  const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000).toISOString()
 
   const [
     { count: postsThisMonth },
     { count: postsLastMonth },
     { data: networksData },
     { count: customersCount },
-    { count: scheduledCount },
+    { count: savedCount },
     { data: recentPosts },
-    { data: trendData },
-    { data: chartRaw },
   ] = await Promise.all([
     supabase.from('posts').select('*', { count: 'exact', head: true })
       .eq('business_id', business.id).gte('created_at', monthStart),
@@ -140,172 +205,294 @@ export default async function DashboardPage() {
     supabase.from('customers').select('*', { count: 'exact', head: true })
       .eq('business_id', business.id),
     supabase.from('posts').select('*', { count: 'exact', head: true })
-      .eq('business_id', business.id).eq('status', 'scheduled'),
+      .eq('business_id', business.id).eq('status', 'draft'),
     supabase.from('posts').select('*')
       .eq('business_id', business.id)
       .order('created_at', { ascending: false })
-      .limit(25),
-    supabase.from('trends').select('suggestions')
-      .eq('business_id', business.id).gte('week_start', weekAgo).limit(1),
-    supabase.from('posts').select('created_at, status')
-      .eq('business_id', business.id)
-      .gte('created_at', twoWeeksAgo)
-      .order('created_at', { ascending: true }),
+      .limit(6),
   ])
 
-  const connectedNetworks = (networksData ?? []) as Array<{ platform: string; platform_username: string | null }>
-  const activeConnections = connectedNetworks.length
-
+  const activeConnections = (networksData ?? []).length
   const posts = (recentPosts ?? []) as Post[]
   const postsDelta = (postsThisMonth ?? 0) - (postsLastMonth ?? 0)
 
-  // ── Build chart data (14 days) ──────────────────────────────────
-  const dailyMap: Record<string, { published: number; scheduled: number }> = {}
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const key = d.toISOString().slice(0, 10)
-    dailyMap[key] = { published: 0, scheduled: 0 }
-  }
-  for (const p of chartRaw ?? []) {
-    const key = new Date(p.created_at).toISOString().slice(0, 10)
-    if (key in dailyMap) {
-      if (p.status === 'published') dailyMap[key].published++
-      else if (p.status === 'scheduled') dailyMap[key].scheduled++
-    }
-  }
-  const chartData = Object.entries(dailyMap).map(([date, c]) => ({
-    date,
-    published: c.published,
-    scheduled: c.scheduled,
-    label: new Date(date + 'T12:00:00').toLocaleDateString('es-ES', {
-      day: 'numeric', month: 'short',
-    }),
-  }))
+  const hour = now.getHours()
+  const greeting = getGreeting(hour)
+  const aiMessage = getAISuggestion(now.getDay())
 
-  const trendsList = (trendData?.[0]?.suggestions ?? []) as Array<{
-    id: string; title: string; reason: string; platform: string; used?: boolean
-  }>
-
-  // ── Date string ─────────────────────────────────────────────────
   const dateStr = capitalize(
     now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
   )
 
   return (
-    <div style={{ padding: '24px 28px', minHeight: '100%' }}>
+    <div className="dashboard-page-padding" style={{ minHeight: '100%' }}>
+      <ConnectSocialsModal show={activeConnections === 0} />
 
-      {/* ── KPI strip ─────────────────────────────────────────────── */}
-      <div style={{
-        background: '#fff',
-        borderRadius: 14,
-        padding: '20px 24px',
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: 24,
-        marginBottom: 12,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      }}>
-        {/* Business identity */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <p style={{
-            fontSize: 9, fontWeight: 500, color: '#4B5563',
-            textTransform: 'uppercase', letterSpacing: '0.09em',
-            margin: '0 0 5px',
-          }}>
-            {dateStr}
-          </p>
-          <p style={{
-            fontSize: 20, fontWeight: 600, color: '#111827',
-            margin: 0, letterSpacing: '-0.5px',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {business.name}
-          </p>
-        </div>
-
-        <Divider />
-
-        <KPIItem
-          value={postsThisMonth ?? 0}
-          label="Posts este mes"
-          delta={postsDelta}
-        />
-        <Divider />
-        <KPIItem
-          value={customersCount ?? 0}
-          label="Clientes"
-        />
-        <Divider />
-        <NetworksKPIItem
-          count={activeConnections}
-          platforms={connectedNetworks.map(n => n.platform)}
-        />
-        <Divider />
-        <KPIItem
-          value={scheduledCount ?? 0}
-          label="Programados"
-        />
-
-        <Divider />
-
-        {/* CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <Link
-            href="/dashboard/create"
-            className="dashboard-hero-btn"
+      {/* ── Page header ─────────────────────────────────────────────── */}
+      <div className="dashboard-page-header" style={{ marginBottom: 24 }}>
+        <div>
+          <h1
+            className="dashboard-greeting"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              background: '#1A1A1A', color: '#fff',
-              borderRadius: 9, padding: '10px 18px',
-              fontSize: 13, fontWeight: 700, textDecoration: 'none',
-              letterSpacing: '-0.1px',
+              fontWeight: 800,
+              color: '#111827',
+              letterSpacing: '-0.03em',
+              margin: 0,
             }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Crear contenido
-          </Link>
+            {greeting}, {business.name}
+          </h1>
+          <p className="hidden md:block" style={{ fontSize: 14, color: '#6B7280', marginTop: 4, margin: '4px 0 0' }}>
+            {dateStr}
+          </p>
         </div>
+        <Link
+          href="/dashboard/create"
+          className="dashboard-hero-btn dashboard-create-btn"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+            background: '#2563EB',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            padding: '9px 18px',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 14,
+            fontWeight: 600,
+            textDecoration: 'none',
+            boxShadow: '0 1px 3px rgba(37,99,235,0.3)',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={15} strokeWidth={2.5} />
+          Crear contenido
+        </Link>
       </div>
 
-      {/* ── Main 2-column grid ────────────────────────────────────── */}
-      {/* UX: izquierda = contenido (la "cancha de juego"), derecha = acciones de IA.
-           65/35 da protagonismo al contenido sin sacrificar el panel de IA. */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 300px',
-        gap: 12,
-        marginBottom: 12,
-        alignItems: 'start',
-      }}>
-        {/* Left: calendar + queue */}
-        <DashboardMainContent posts={posts} />
-
-        {/* Right: AI panel */}
-        <DashboardAIPanel
-          businessId={business.id}
-          trendsList={trendsList}
-          activeConnections={activeConnections ?? 0}
-          customersCount={customersCount ?? 0}
-          scheduledCount={scheduledCount ?? 0}
+      {/* ── Stat cards ──────────────────────────────────────────────── */}
+      <div
+        className="stat-cards-grid"
+        style={{ gap: 12, marginBottom: 20 }}
+      >
+        <StatCard
+          label="Posts este mes"
+          value={postsThisMonth ?? 0}
+          delta={postsDelta}
+          icon={<Send size={13} color="#2563EB" />}
+        />
+        <StatCard
+          label="Redes conectadas"
+          value={activeConnections}
+          deltaLabel={activeConnections === 0 ? 'Sin conexiones' : 'Canales activos'}
+          icon={<Share2 size={13} color="#2563EB" />}
+        />
+        <StatCard
+          label="Clientes"
+          value={customersCount ?? 0}
+          deltaLabel="Total acumulado"
+          icon={<Users size={13} color="#2563EB" />}
+        />
+        <StatCard
+          label="Contenido guardado"
+          value={savedCount ?? 0}
+          deltaLabel="Borradores"
+          icon={<Library size={13} color="#2563EB" />}
         />
       </div>
 
-      {/* ── Activity chart ────────────────────────────────────────── */}
-      {/* UX: la gráfica va abajo porque es contexto histórico, no acción inmediata.
-           El usuario primero actúa (arriba), luego revisa tendencias (aquí). */}
-      <DashboardActivityChart
-        chartData={chartData}
-        totalThisMonth={postsThisMonth ?? 0}
-        delta={postsDelta}
-        connectedNetworks={connectedNetworks}
-      />
+      {/* ── AI suggestion banner ─────────────────────────────────────── */}
+      <div
+        className="ai-banner"
+        style={{
+          background: '#EFF6FF',
+          border: '1px solid #BFDBFE',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 9,
+              background: '#DBEAFE',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={17} color="#2563EB" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#1E40AF',
+                margin: '0 0 2px',
+              }}
+            >
+              Sugerencia de la IA
+            </p>
+            <p style={{ fontSize: 13, color: '#374151', margin: 0 }}>
+              {aiMessage}{' '}
+              <Link
+                href="/dashboard/create"
+                style={{
+                  color: '#2563EB',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Generar post →
+              </Link>
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/create"
+          className="dashboard-hero-btn ai-banner-btn"
+          style={{
+            display: 'block',
+            background: '#2563EB',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: 8,
+            padding: '8px 16px',
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: 'pointer',
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          Usar idea
+        </Link>
+      </div>
 
-      {/* ── Analytics section ────────────────────────────────────── */}
-      <DashboardAnalyticsSection />
+      {/* ── Recent posts ────────────────────────────────────────────── */}
+      <div>
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: '#111827',
+            letterSpacing: '-0.01em',
+            margin: '0 0 12px',
+          }}
+        >
+          Publicaciones recientes
+        </p>
+
+        {posts.length === 0 ? (
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 12,
+              border: '1px solid #E5E7EB',
+              padding: '36px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <p style={{ fontSize: 13, color: '#9CA3AF', margin: '0 0 16px' }}>
+              Aun no has creado ninguna publicacion
+            </p>
+            <Link
+              href="/dashboard/create"
+              className="dashboard-hero-btn"
+              style={{
+                display: 'inline-block',
+                background: '#2563EB',
+                color: '#FFFFFF',
+                borderRadius: 8,
+                padding: '9px 20px',
+                fontWeight: 600,
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+            >
+              Crear primera publicacion
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {posts.map((post) => {
+              const platform = post.platforms?.[0] ?? 'instagram'
+              const title = post.title || post.content_text?.split('\n')[0] || 'Sin titulo'
+              const preview = post.content_text ?? ''
+
+              return (
+                <div
+                  key={post.id}
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: 10,
+                    border: '1px solid #E5E7EB',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <PlatformIcon platform={platform} />
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#111827',
+                        margin: '0 0 2px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {title}
+                    </p>
+                    <p
+                      className="hidden md:block"
+                      style={{
+                        fontSize: 13,
+                        color: '#6B7280',
+                        margin: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {preview}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      gap: 4,
+                    }}
+                  >
+                    <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0 }}>
+                      {relativeTime(post.created_at)}
+                    </p>
+                    <StatusBadge status={post.status} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
-

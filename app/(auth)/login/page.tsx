@@ -25,6 +25,10 @@ export default function LoginPage() {
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
+      if (authError.message.includes('Email not confirmed')) {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+        return
+      }
       setError(authError.message)
       setLoading(false)
       return
@@ -35,11 +39,18 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-[400px]" padding="lg">
+    <Card
+      className="w-full"
+      padding="lg"
+      style={{
+        boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+        borderRadius: 16,
+      }}
+    >
       <div className="flex flex-col gap-6">
         {/* Brand */}
         <div className="flex flex-col gap-1">
-          <span className="text-2xl font-semibold text-brand-primary">MarketingIA</span>
+          <span className="text-2xl font-semibold text-brand-primary">Publify</span>
           <h1 className="text-xl font-semibold text-brand-text-primary">Inicia sesion</h1>
           <p className="text-sm text-brand-text-secondary">
             Gestiona el marketing de tu negocio

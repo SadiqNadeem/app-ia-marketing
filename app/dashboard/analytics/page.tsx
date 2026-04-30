@@ -277,10 +277,10 @@ export default function AnalyticsPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-6xl mx-auto w-full">
+    <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6 max-w-6xl mx-auto w-full">
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <PageHeader
           title="Analitica"
           subtitle="Rendimiento de tus publicaciones en redes sociales"
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
 
       {/* ── FILA 3: BarChart + Heatmap ──────────────────────────────────── */}
       {!summaryLoading && hasData && summary && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card>
             <p className="text-sm font-semibold text-[#111827] mb-4">Rendimiento por plataforma</p>
             {barData.length > 0 ? (
@@ -472,7 +472,7 @@ export default function AnalyticsPage() {
           )}
 
           {insights.length > 0 && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {insights.map((ins, idx) => (
                 <Card key={idx} padding="md" className="flex flex-col gap-2">
                   <div className="flex items-start justify-between gap-2">

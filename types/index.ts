@@ -13,7 +13,7 @@ export type SocialPlatform =
   | 'google'
   | 'whatsapp'
 
-export type PostStatus = 'draft' | 'scheduled' | 'published' | 'failed'
+export type PostStatus = 'draft' | 'publishing' | 'scheduled' | 'published' | 'failed'
 
 export type PlanType = 'basic' | 'pro' | 'business' | 'agency'
 
@@ -97,6 +97,8 @@ export interface SocialConnection {
   token_expires_at: string | null
   platform_user_id: string | null
   platform_username: string | null
+  account_type: string | null
+  is_professional: boolean | null
   is_active: boolean
   created_at: string
 }
@@ -104,11 +106,16 @@ export interface SocialConnection {
 export interface Post {
   id: string
   business_id: string
+  user_id?: string | null
+  content?: string | null
+  media_url?: string | null
   content_text: string
   image_url: string | null
   video_url: string | null
   platforms: SocialPlatform[]
+  platform?: SocialPlatform | null
   status: PostStatus
+  external_post_id?: string | null
   scheduled_at: string | null
   published_at: string | null
   promotion_type: PromotionType | null
@@ -118,6 +125,11 @@ export interface Post {
   hashtags?: string[] | null
   error_message?: string | null
   created_at: string
+  updated_at?: string | null
+  cta?: string | null
+  image_prompt?: string | null
+  visual_style?: string | null
+  extra_context?: string | null
 }
 
 export type DiscountType = 'percentage' | 'fixed'

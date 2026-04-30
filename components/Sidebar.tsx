@@ -3,174 +3,21 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import {
+  Home, Pen, Video, Calendar, Bot, Tag, Clipboard, MessageSquare,
+  Mail, Share2, Star, BarChart2, Search, Settings, Database, TrendingUp,
+  LogOut, Menu, FileText, LayoutList, UserCircle,
+} from 'lucide-react'
 import type { Route } from 'next'
 import type { Business, PlanType } from '@/types'
 
-// ── SVG Icon components (stroke-only, 14x14, stroke-width 2) ─────────────────
-
-function IconHome() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-      <polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
-  )
-}
-function IconCalendar() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  )
-}
-function IconPen() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20h9"/>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-    </svg>
-  )
-}
-function IconVideo() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="23 7 16 12 23 17 23 7"/>
-      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-    </svg>
-  )
-}
-function IconBot() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="10" rx="2"/>
-      <circle cx="12" cy="5" r="2"/>
-      <line x1="12" y1="7" x2="12" y2="11"/>
-      <line x1="8" y1="15" x2="8" y2="15"/>
-      <line x1="16" y1="15" x2="16" y2="15"/>
-    </svg>
-  )
-}
-function IconTag() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-      <line x1="7" y1="7" x2="7.01" y2="7"/>
-    </svg>
-  )
-}
-function IconClipboard() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-      <rect x="9" y="3" width="6" height="4" rx="1" ry="1"/>
-    </svg>
-  )
-}
-function IconMessage() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  )
-}
-function IconMail() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-      <polyline points="22,6 12,13 2,6"/>
-    </svg>
-  )
-}
-function IconGlobe() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
-  )
-}
-function IconMenu() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  )
-}
-function IconShare() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3"/>
-      <circle cx="6" cy="12" r="3"/>
-      <circle cx="18" cy="19" r="3"/>
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-    </svg>
-  )
-}
-function IconStar() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  )
-}
-function IconBarChart() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/>
-      <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6" y1="20" x2="6" y2="14"/>
-    </svg>
-  )
-}
-function IconSearch() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-  )
-}
-function IconSettings() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-  )
-}
-function IconDatabase() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="5" rx="9" ry="3"/>
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-    </svg>
-  )
-}
-function IconTrendingUp() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-      <polyline points="17 6 23 6 23 12"/>
-    </svg>
-  )
-}
-
-// ── Nav structure ─────────────────────────────────────────────────────────────
-
-type NavIcon = () => JSX.Element
+type LucideIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
 
 interface NavItem {
   label: string
   href: string
-  Icon: NavIcon
+  Icon: LucideIcon
+  hidden?: boolean
   showWhen?: (category: string, plan: PlanType) => boolean
 }
 
@@ -186,66 +33,69 @@ const NAV_GROUPS: NavGroup[] = [
   {
     group: 'Contenido',
     items: [
-      { label: 'Inicio', href: '/dashboard', Icon: IconHome },
-      { label: 'Crear contenido', href: '/dashboard/create', Icon: IconPen },
+      { label: 'Inicio', href: '/dashboard', Icon: Home },
+      { label: 'Crear contenido', href: '/dashboard/create', Icon: Pen },
+      { label: 'Publicaciones', href: '/dashboard/posts', Icon: LayoutList },
+      { label: 'Borradores', href: '/dashboard/drafts', Icon: FileText },
       {
         label: 'Generar video',
         href: '/dashboard/video',
-        Icon: IconVideo,
+        Icon: Video,
         showWhen: (_cat, plan) => plan === 'business' || plan === 'agency',
       },
-      { label: 'Calendario', href: '/dashboard/calendar', Icon: IconCalendar },
-      { label: 'Asistente IA', href: '/dashboard/chat', Icon: IconBot },
+      { label: 'Calendario', href: '/dashboard/calendar', Icon: Calendar },
+      { label: 'Asistente IA', href: '/dashboard/chat', Icon: Bot, hidden: true },
     ],
   },
   {
     group: 'Clientes',
     items: [
-      { label: 'Cupones', href: '/dashboard/coupons', Icon: IconTag },
-      { label: 'Encuestas', href: '/dashboard/surveys', Icon: IconClipboard },
-      { label: 'Campanas WhatsApp', href: '/dashboard/campaigns', Icon: IconMessage },
-      { label: 'Email marketing', href: '/dashboard/emails', Icon: IconMail },
+      { label: 'Cupones', href: '/dashboard/coupons', Icon: Tag },
+      { label: 'Encuestas', href: '/dashboard/surveys', Icon: Clipboard },
+      { label: 'Campanas WhatsApp', href: '/dashboard/campaigns', Icon: MessageSquare, hidden: true },
+      { label: 'Email marketing', href: '/dashboard/emails', Icon: Mail, hidden: true },
     ],
   },
   {
     group: 'Presencia',
     items: [
-      // 'Mi pagina web' desactivada temporalmente del sidebar (2026-04-12)
       {
         label: 'Menu digital',
         href: '/dashboard/menu',
-        Icon: IconMenu,
+        Icon: Menu,
+        hidden: true,
         showWhen: (cat) => MENU_DIGITAL_CATEGORIES.includes(cat),
       },
       {
         label: 'Catalogo',
         href: '/dashboard/menu',
-        Icon: IconMenu,
+        Icon: Menu,
+        hidden: true,
         showWhen: (cat) => CATALOGO_CATEGORIES.includes(cat),
       },
-      { label: 'Redes sociales', href: '/dashboard/connections', Icon: IconShare },
-      { label: 'Resenas Google', href: '/dashboard/reviews', Icon: IconStar },
+      { label: 'Redes sociales', href: '/dashboard/connections', Icon: Share2 },
+      { label: 'Reseñas Google', href: '/dashboard/reviews', Icon: Star },
     ],
   },
   {
     group: 'Datos',
     items: [
-      { label: 'Analitica', href: '/dashboard/analytics', Icon: IconBarChart },
+      { label: 'Analitica', href: '/dashboard/analytics', Icon: BarChart2 },
       {
         label: 'Competencia',
         href: '/dashboard/competitors',
-        Icon: IconSearch,
+        Icon: Search,
         showWhen: (_cat, plan) => plan === 'pro' || plan === 'business' || plan === 'agency',
       },
       {
         label: 'Anuncios',
         href: '/dashboard/ads',
-        Icon: IconTrendingUp,
+        Icon: TrendingUp,
         showWhen: (_cat, plan) => plan === 'business' || plan === 'agency',
       },
-      { label: 'Negocio IA', href: '/dashboard/knowledge', Icon: IconDatabase },
-      { label: 'Ejemplos IA', href: '/dashboard/ai-knowledge', Icon: IconBot },
-      { label: 'Configuracion', href: '/dashboard/settings', Icon: IconSettings },
+      { label: 'Negocio IA', href: '/dashboard/knowledge', Icon: Database },
+      { label: 'Ejemplos IA', href: '/dashboard/examples', Icon: Bot },
+      { label: 'Configuracion', href: '/dashboard/settings', Icon: Settings },
     ],
   },
 ]
@@ -253,9 +103,10 @@ const NAV_GROUPS: NavGroup[] = [
 function buildNavGroups(category: string, plan: PlanType): NavGroup[] {
   return NAV_GROUPS.map((g) => ({
     group: g.group,
-    items: g.items.filter((item) =>
-      item.showWhen ? item.showWhen(category, plan) : true
-    ),
+    items: g.items.filter((item) => {
+      if (item.hidden) return false
+      return item.showWhen ? item.showWhen(category, plan) : true
+    }),
   })).filter((g) => g.items.length > 0)
 }
 
@@ -266,11 +117,81 @@ const PLAN_LABEL: Record<PlanType, string> = {
   agency: 'Agency',
 }
 
-interface SidebarProps {
-  business: Business
+const CHANNEL_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  google: 'Google Business',
+  whatsapp: 'WhatsApp',
 }
 
-export function Sidebar({ business }: SidebarProps) {
+function ChannelLogo({ platform }: { platform: string }) {
+  if (platform === 'instagram') {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <defs>
+          <radialGradient id="ig-grad-sidebar" cx="30%" cy="107%" r="150%">
+            <stop offset="0%" stopColor="#fdf497" />
+            <stop offset="5%" stopColor="#fdf497" />
+            <stop offset="45%" stopColor="#fd5949" />
+            <stop offset="60%" stopColor="#d6249f" />
+            <stop offset="90%" stopColor="#285AEB" />
+          </radialGradient>
+        </defs>
+        <rect width="24" height="24" rx="6" fill="url(#ig-grad-sidebar)" />
+        <rect x="6" y="6" width="12" height="12" rx="4" fill="none" stroke="white" strokeWidth="1.5" />
+        <circle cx="12" cy="12" r="3" fill="none" stroke="white" strokeWidth="1.5" />
+        <circle cx="16.5" cy="7.5" r="1" fill="white" />
+      </svg>
+    )
+  }
+  if (platform === 'facebook') {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <rect width="24" height="24" rx="6" fill="#1877F2" />
+        <path d="M13.5 8.5h2V6h-2C11.6 6 10 7.6 10 9.5V11H8v2.5h2V20h2.5v-6.5H15l.5-2.5h-3V9.5c0-.6.4-1 1-1z" fill="white" />
+      </svg>
+    )
+  }
+  if (platform === 'tiktok') {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <rect width="24" height="24" rx="6" fill="#212121" />
+        <path d="M15.6 5.6c.4 1.1 1.2 2 2.4 2.3v2.1c-.8 0-1.6-.2-2.4-.7v5c0 2.4-2 4.4-4.4 4.4s-4.4-2-4.4-4.4 2-4.4 4.4-4.4c.2 0 .4 0 .6.1v2.2c-.2-.1-.4-.1-.6-.1-1.2 0-2.2 1-2.2 2.2s1 2.2 2.2 2.2 2.2-1 2.2-2.2V5.6h2.2z" fill="white" />
+      </svg>
+    )
+  }
+  if (platform === 'google') {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <rect width="24" height="24" rx="6" fill="white" />
+        <path d="M12 10.4h6c.1.5.2 1 .2 1.6 0 3.5-2.4 6-6.2 6-3.5 0-6.3-2.8-6.3-6.3s2.8-6.3 6.3-6.3c1.7 0 3.1.6 4.2 1.6l-1.7 1.7c-.7-.6-1.5-1-2.5-1-2.1 0-3.8 1.7-3.8 3.8s1.7 3.8 3.8 3.8c1.9 0 3.2-1.1 3.5-2.6H12v-2.3z" fill="#4285F4" />
+        <path d="M6 12c0-.7.1-1.4.3-2.1L4.1 8.4C3.4 9.5 3 10.7 3 12s.4 2.5 1.1 3.6l2.2-1.5C6.1 13.4 6 12.7 6 12z" fill="#34A853" />
+        <path d="M12 19.3c1.7 0 3.2-.6 4.3-1.5l-2-1.6c-.7.5-1.5.7-2.3.7-1.8 0-3.3-1.1-3.8-2.8l-2.2 1.7c1.1 2.1 3.3 3.5 6 3.5z" fill="#FBBC05" />
+        <path d="M20 12c0-.7-.1-1.4-.2-2h-7.8v2.4h4.5c-.2.9-.7 1.7-1.5 2.2l2 1.6c1.4-1.3 2-3.1 2-4.2z" fill="#EA4335" />
+      </svg>
+    )
+  }
+  if (platform === 'whatsapp') {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <rect width="24" height="24" rx="6" fill="#25D366" />
+        <path d="M12 4.5A7.5 7.5 0 0 0 5.3 16l-1 3.5 3.6-1A7.5 7.5 0 1 0 12 4.5zm0 13.5a6 6 0 0 1-3.1-.9l-.2-.1-2.1.6.6-2.1-.2-.2A6 6 0 1 1 12 18zm3.3-4.5c-.2-.1-1-.5-1.2-.5-.2-.1-.3-.1-.4.1s-.5.6-.6.8c-.1.1-.2.1-.4 0-.2-.1-.8-.3-1.5-1-.6-.5-1-1.1-1.1-1.3 0-.2 0-.3.1-.4l.3-.3.2-.3v-.3L10 9.6c-.1-.3-.3-.3-.4-.3h-.4c-.1 0-.3 0-.5.2-.2.2-.7.7-.7 1.6s.7 1.9.8 2c.1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.1 1 .1 1.3.1.4-.1 1.2-.5 1.4-1s.2-.9.1-1c0-.1-.2-.2-.4-.3z" fill="white" />
+      </svg>
+    )
+  }
+  return (
+    <span style={{ width: 16, height: 16, borderRadius: 3, background: '#6B7280', flexShrink: 0, display: 'inline-block' }} />
+  )
+}
+
+interface SidebarProps {
+  business: Business
+  connectedNetworks?: Array<{ platform: string; platform_username: string | null }>
+  onNavigate?: () => void
+}
+
+export function Sidebar({ business, connectedNetworks = [], onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const groups = buildNavGroups(business.category, business.plan)
@@ -288,47 +209,86 @@ export function Sidebar({ business }: SidebarProps) {
     .join('')
     .toUpperCase()
 
+  const appInitial = 'P'
+
   return (
     <aside
       style={{
-        width: 210,
-        minWidth: 210,
-        background: '#FFFFFF',
-        borderRight: '1px solid #EAECF0',
+        width: 224,
+        background: '#111827',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
         overflow: 'hidden',
+        zIndex: 40,
       }}
     >
       {/* Header */}
       <div
         style={{
-          padding: '18px 18px 18px',
-          borderBottom: '1px solid #EAECF0',
-          marginBottom: 10,
+          padding: '22px 20px 18px',
+          borderBottom: '1px solid #1F2937',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
         }}
       >
-        <p style={{ fontSize: 16, fontWeight: 700, color: '#111827', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 7,
+            background: '#2563EB',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontSize: 15,
+            fontWeight: 800,
+            flexShrink: 0,
+          }}
+        >
+          {appInitial}
+        </div>
+        <p
+          style={{
+            fontSize: 16,
+            fontWeight: 800,
+            color: '#FFFFFF',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.2,
+            margin: 0,
+          }}
+        >
           Publify
-        </p>
-        <p style={{ fontSize: 11, color: '#9EA3AE', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {business.name}
         </p>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
+      <nav
+        className="sidebar-nav"
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '4px 10px 8px',
+        }}
+      >
         {groups.map((group) => (
           <div key={group.group}>
             <p
               style={{
                 fontSize: 10,
-                fontWeight: 600,
-                color: '#B0B7C3',
+                fontWeight: 700,
+                color: '#374151',
                 textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-                padding: '10px 18px 4px',
+                letterSpacing: '0.08em',
+                marginTop: 16,
+                marginBottom: 8,
+                padding: '0 12px',
+                margin: '16px 0 8px',
               }}
             >
               {group.group}
@@ -343,35 +303,41 @@ export function Sidebar({ business }: SidebarProps) {
                 <Link
                   key={href + label}
                   href={href as Route}
+                  onClick={onNavigate}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 9,
-                    padding: '9px 18px',
-                    fontSize: 13,
-                    color: isActive ? '#1A56DB' : '#5A6070',
-                    fontWeight: isActive ? 600 : 400,
-                    borderLeft: `2px solid ${isActive ? '#1A56DB' : 'transparent'}`,
-                    background: isActive ? '#EEF3FE' : 'transparent',
+                    gap: 10,
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    width: '100%',
+                    fontSize: 14,
+                    color: isActive ? '#FFFFFF' : '#9CA3AF',
+                    fontWeight: isActive ? 600 : 500,
+                    background: isActive ? '#2563EB' : 'transparent',
                     textDecoration: 'none',
-                    transition: 'all 120ms ease',
+                    transition: 'all 150ms cubic-bezier(0.4,0,0.2,1)',
                     cursor: 'pointer',
+                    marginBottom: 1,
+                    boxSizing: 'border-box',
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      (e.currentTarget as HTMLAnchorElement).style.color = '#111827'
-                      ;(e.currentTarget as HTMLAnchorElement).style.background = '#F4F5F7'
+                      const el = e.currentTarget as HTMLAnchorElement
+                      el.style.background = '#1F2937'
+                      el.style.color = '#FFFFFF'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      (e.currentTarget as HTMLAnchorElement).style.color = '#5A6070'
-                      ;(e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                      const el = e.currentTarget as HTMLAnchorElement
+                      el.style.background = 'transparent'
+                      el.style.color = '#9CA3AF'
                     }
                   }}
                 >
-                  <span style={{ opacity: isActive ? 1 : 0.5, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                    <Icon />
+                  <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                    <Icon size={17} />
                   </span>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {label}
@@ -381,14 +347,68 @@ export function Sidebar({ business }: SidebarProps) {
             })}
           </div>
         ))}
+
+        {/* Channels section */}
+        {connectedNetworks.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: '#374151',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                margin: '16px 0 8px',
+                padding: '0 12px',
+              }}
+            >
+              Canales
+            </p>
+            {connectedNetworks.map((net) => (
+              <div
+                key={net.platform}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                }}
+              >
+                <ChannelLogo platform={net.platform} />
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: '#9CA3AF',
+                    fontWeight: 500,
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {CHANNEL_LABELS[net.platform] ?? net.platform}
+                </span>
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#16A34A',
+                    flexShrink: 0,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
-      {/* Footer — business chip */}
+      {/* Footer */}
       <div
         style={{
-          marginTop: 'auto',
+          borderTop: '1px solid #1F2937',
           padding: '14px 18px',
-          borderTop: '1px solid #EAECF0',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -398,8 +418,8 @@ export function Sidebar({ business }: SidebarProps) {
           style={{
             width: 30,
             height: 30,
-            borderRadius: 8,
-            background: '#1A56DB',
+            borderRadius: '50%',
+            background: '#2563EB',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -412,33 +432,43 @@ export function Sidebar({ business }: SidebarProps) {
           {initials}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#FFFFFF',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              margin: 0,
+            }}
+          >
             {business.name}
           </p>
-          <p style={{ fontSize: 11, color: '#9EA3AE' }}>
+          <p style={{ fontSize: 11, color: '#4B5563', margin: 0 }}>
             {PLAN_LABEL[business.plan]}
           </p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+            <Link
+              href={'/dashboard/account' as Route}
+              onClick={onNavigate}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6B7280', textDecoration: 'none' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#9CA3AF' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = '#6B7280' }}
+            >
+              <UserCircle size={12} /> Mi cuenta
+            </Link>
+            <button
+              onClick={handleSignOut}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#9CA3AF' }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6B7280' }}
+            >
+              <LogOut size={12} /> Cerrar sesion
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleSignOut}
-          title="Cerrar sesion"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 4,
-            color: '#9EA3AE',
-            flexShrink: 0,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </button>
       </div>
     </aside>
   )
 }
-

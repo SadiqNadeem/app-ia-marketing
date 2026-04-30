@@ -5,7 +5,7 @@ import { NotificationBell } from '@/components/NotificationBell'
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Inicio',
-  '/dashboard/create': 'Crear contenido',
+  '/dashboard/create': 'Contenido',
   '/dashboard/video': 'Generar video',
   '/dashboard/calendar': 'Calendario',
   '/dashboard/chat': 'Asistente IA',
@@ -30,7 +30,6 @@ const PAGE_TITLES: Record<string, string> = {
 
 function getPageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
-  // Match prefix
   const match = Object.keys(PAGE_TITLES)
     .filter((k) => k !== '/dashboard' && pathname.startsWith(k))
     .sort((a, b) => b.length - a.length)[0]
@@ -40,54 +39,115 @@ function getPageTitle(pathname: string): string {
 interface TopBarProps {
   businessId: string
   userInitials: string
+  businessName?: string
+  onMenuClick?: () => void
 }
 
-export function TopBar({ businessId, userInitials }: TopBarProps) {
+export function TopBar({ businessId, userInitials, onMenuClick }: TopBarProps) {
   const pathname = usePathname()
   const pageTitle = getPageTitle(pathname)
 
   return (
     <header
       style={{
-        height: 52,
+        height: 56,
         background: '#FFFFFF',
         borderBottom: '1px solid #E5E7EB',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: '0 16px 0 12px',
         flexShrink: 0,
       }}
     >
-      {/* Page title */}
-      <span style={{ fontSize: 16, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.3px' }}>
+      {/* Mobile: hamburger + Publify logo | Desktop: page title */}
+      <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button
+          onClick={onMenuClick}
+          aria-label="Abrir menu"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#111827',
+            flexShrink: 0,
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: '#2563EB',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontSize: 13,
+            fontWeight: 800,
+            flexShrink: 0,
+          }}
+        >
+          P
+        </div>
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: 800,
+            color: '#111827',
+            letterSpacing: '-0.03em',
+          }}
+        >
+          Publify
+        </span>
+      </div>
+
+      <span
+        className="hidden md:block"
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: '#111827',
+          letterSpacing: '-0.01em',
+        }}
+      >
         {pageTitle}
       </span>
 
-      {/* Right controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {/* Notification bell */}
         <div
           style={{
             width: 34,
             height: 34,
             borderRadius: 9,
-            background: '#F3F4F6',
+            background: '#F9FAFB',
             border: '1px solid #E5E7EB',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            position: 'relative',
           }}
         >
           <NotificationBell businessId={businessId} compact />
         </div>
 
-        {/* User avatar */}
         <div
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
             background: '#111827',
             display: 'flex',
             alignItems: 'center',
@@ -104,4 +164,3 @@ export function TopBar({ businessId, userInitials }: TopBarProps) {
     </header>
   )
 }
-
