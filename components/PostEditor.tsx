@@ -264,13 +264,13 @@ function getObjType(obj: fabric.Object): 'text' | 'image' | 'shape' {
 
 // ── Shared micro-styles ───────────────────────────────────────────────────────
 const PROP_LABEL: React.CSSProperties = {
-  fontSize: 10, fontWeight: 600, color: '#9CA3AF',
+  fontSize: 11, fontWeight: 600, color: '#9CA3AF',
   textTransform: 'uppercase', letterSpacing: '0.05em',
-  marginBottom: 3, display: 'block',
+  marginBottom: 4, display: 'block',
 }
 const PROP_INPUT: React.CSSProperties = {
   width: '100%', border: '1px solid #E5E7EB', borderRadius: 6,
-  padding: '5px 7px', fontSize: 12, color: '#111827',
+  padding: '6px 10px', fontSize: 13, color: '#374151',
   outline: 'none', boxSizing: 'border-box', background: '#FFFFFF',
 }
 
@@ -969,8 +969,8 @@ export default function PostEditor({
   const toolBtn = (active = false): React.CSSProperties => ({
     width: 30, height: 30, borderRadius: 7, border: 'none', cursor: 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: active ? '#EEF3FE' : 'transparent',
-    color: active ? '#1A56DB' : '#6B7280', flexShrink: 0,
+    background: active ? '#EFF6FF' : 'transparent',
+    color: active ? '#2563EB' : '#6B7280', flexShrink: 0,
   })
 
   const divider: React.CSSProperties = {
@@ -1295,7 +1295,7 @@ export default function PostEditor({
           onClick={doExport}
           style={{
             padding: '5px 14px', borderRadius: 8, border: 'none',
-            background: '#1A56DB', color: '#FFFFFF',
+            background: '#2563EB', color: '#FFFFFF',
             fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
           }}
         >
@@ -1333,7 +1333,7 @@ export default function PostEditor({
         {/* Left panel */}
         <div
           style={{
-            width: 196, background: '#FAFAFA', borderRight: '1px solid #E5E7EB',
+            width: 196, background: '#FFFFFF', borderRight: '1px solid #E5E7EB',
             display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden',
           }}
         >
@@ -1345,9 +1345,9 @@ export default function PostEditor({
                 onClick={() => setLeftTab(tab)}
                 style={{
                   flex: 1, padding: '9px 2px', border: 'none', background: 'transparent',
-                  fontSize: 11, fontWeight: leftTab === tab ? 600 : 500,
-                  color: leftTab === tab ? '#1A56DB' : '#6B7280',
-                  borderBottom: leftTab === tab ? '2px solid #1A56DB' : '2px solid transparent',
+                  fontSize: 13, fontWeight: leftTab === tab ? 600 : 400,
+                  color: leftTab === tab ? '#111827' : '#9CA3AF',
+                  borderBottom: leftTab === tab ? '2px solid #2563EB' : '2px solid transparent',
                   cursor: 'pointer',
                 }}
               >
@@ -1377,23 +1377,30 @@ export default function PostEditor({
                       border: '1px solid #E5E7EB', borderRadius: 8,
                       overflow: 'hidden', cursor: 'pointer',
                       background: '#FFFFFF', padding: 0, textAlign: 'left',
+                      boxShadow: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#1A56DB' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#2563EB'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.08)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E5E7EB'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
                   >
                     <div
                       style={{
                         width: '100%',
                         height: thumbSize.w === thumbSize.h ? 62 : thumbSize.h > thumbSize.w ? 80 : 42,
-                        background: tpl.thumbBg,
+                        background: '#F3F4F6',
                         display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', gap: 5, padding: 10,
                       }}
                     >
-                      <div style={{ width: 88, height: 7, borderRadius: 4, background: tpl.thumbAccent, opacity: 0.9 }} />
-                      <div style={{ width: 60, height: 5, borderRadius: 4, background: tpl.thumbAccent, opacity: 0.5 }} />
+                      <div style={{ width: 80, height: 6, borderRadius: 4, background: tpl.thumbAccent, opacity: 0.7 }} />
+                      <div style={{ width: 56, height: 4, borderRadius: 4, background: '#D1D5DB' }} />
                     </div>
-                    <div style={{ padding: '5px 8px', fontSize: 11, fontWeight: 500, color: '#374151' }}>
+                    <div style={{ padding: '5px 8px', fontSize: 12, fontWeight: 500, color: '#6B7280' }}>
                       {tpl.name}
                     </div>
                   </button>
@@ -1420,8 +1427,8 @@ export default function PostEditor({
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5,
                         padding: '5px 7px', borderRadius: 6, cursor: 'pointer',
-                        border: `1px solid ${selectedObj === layer.obj ? '#1A56DB' : 'transparent'}`,
-                        background: selectedObj === layer.obj ? '#EEF3FE' : 'transparent',
+                        border: `1px solid ${selectedObj === layer.obj ? '#2563EB' : 'transparent'}`,
+                        background: selectedObj === layer.obj ? '#EFF6FF' : 'transparent',
                       }}
                       onMouseEnter={(e) => {
                         if (selectedObj !== layer.obj) e.currentTarget.style.background = '#F3F4F6'
@@ -1479,7 +1486,7 @@ export default function PostEditor({
         {/* Canvas area */}
         <div
           style={{
-            flex: 1, background: '#D1D5DB', display: 'flex',
+            flex: 1, background: '#F3F4F6', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
             overflow: 'auto', padding: 20, position: 'relative',
           }}
@@ -1489,7 +1496,7 @@ export default function PostEditor({
           }}
         >
           <div
-            style={{ border: '1px solid #9CA3AF', boxShadow: '0 4px 20px rgba(0,0,0,0.18)' }}
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <canvas ref={canvasRef} />
@@ -1499,10 +1506,10 @@ export default function PostEditor({
           {showTemplateHint && (
             <div style={{
               position: 'absolute', top: 12, right: 12, zIndex: 50,
-              background: '#1A56DB', color: '#FFFFFF',
+              background: '#111827', color: '#FFFFFF',
               borderRadius: 8, padding: '8px 14px',
               fontSize: 12, fontWeight: 500,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
             }}>
               Haz doble clic en los textos para editarlos
             </div>
@@ -1513,11 +1520,11 @@ export default function PostEditor({
         {selectedObj && objType && (
           <div
             style={{
-              width: 196, background: '#FAFAFA', borderLeft: '1px solid #E5E7EB',
-              overflowY: 'auto', padding: '10px 10px 20px', flexShrink: 0,
+              width: 196, background: '#FFFFFF', borderLeft: '1px solid #E5E7EB',
+              overflowY: 'auto', padding: '12px 12px 20px', flexShrink: 0,
             }}
           >
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#111827', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Propiedades
             </p>
 
@@ -1571,8 +1578,8 @@ export default function PostEditor({
                       onClick={() => { const nv = !val; set(nv); applyText(prop, nv ? on : off) }}
                       style={{
                         flex: 1, height: 28, border: '1px solid #E5E7EB', borderRadius: 6,
-                        background: val ? '#EEF3FE' : '#FFFFFF',
-                        color: val ? '#1A56DB' : '#374151',
+                        background: val ? '#EFF6FF' : '#FFFFFF',
+                        color: val ? '#2563EB' : '#374151',
                         cursor: 'pointer', fontSize: 12, ...style,
                       }}
                     >
@@ -1592,8 +1599,8 @@ export default function PostEditor({
                       onClick={() => { setTextAlign(val); applyText('textAlign', val) }}
                       style={{
                         flex: 1, height: 28, border: '1px solid #E5E7EB', borderRadius: 6,
-                        background: textAlign === val ? '#EEF3FE' : '#FFFFFF',
-                        color: textAlign === val ? '#1A56DB' : '#374151',
+                        background: textAlign === val ? '#EFF6FF' : '#FFFFFF',
+                        color: textAlign === val ? '#2563EB' : '#374151',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
@@ -1634,7 +1641,7 @@ export default function PostEditor({
                 </div>
                 <button
                   onClick={applyImageFilters}
-                  style={{ width: '100%', padding: '7px 0', borderRadius: 6, border: 'none', background: '#1A56DB', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer', fontSize: 12, marginBottom: 10 }}
+                  style={{ width: '100%', padding: '7px 0', borderRadius: 6, border: 'none', background: '#2563EB', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer', fontSize: 12, marginBottom: 10 }}
                 >
                   Aplicar filtros
                 </button>
@@ -1758,10 +1765,14 @@ export default function PostEditor({
                 onClick={deleteSelected}
                 style={{
                   width: '100%', padding: '7px 0', borderRadius: 6,
-                  border: '1px solid #FECACA', background: '#FFF5F5',
-                  color: '#DC2626', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: 'none', background: 'none',
+                  color: '#DC2626', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#B91C1C' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#DC2626' }}
               >
+                <Trash2 size={13} />
                 Eliminar objeto
               </button>
             </div>
